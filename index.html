@@ -23,6 +23,14 @@
    GAS 網址換了，只要改下面這一行，印出去的連結和 QR Code 都不用重做。 */
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbywHUAVNsVKFqf7Ck7O4MN48qhLobw1CCzRf6f-q6SUQLX6b2KqpUKhGSxVhQkomoClxA/exec';
 
+/* 大流量活動（校慶、親師日）用的備援開關：
+   'gas'    ＝平常，轉到 Apps Script。
+   'static' ＝改轉到同一個 GitHub 網站裡的 map/ 備援站（外賓版單一檔案，直接讀 Google 試算表，不經過 Apps Script，不怕人多）。
+   班級連結（?e=c 開頭）和 QR 牌列印頁一定要 Apps Script，這兩種不管開關都轉 Apps Script。
+   切換方法：把下面 'gas' 改成 'static'，存檔（commit），一兩分鐘後生效；活動結束再改回來。 */
+var MODE = 'gas';
+var STATIC_URL = 'map/';
+
 (function(){
   var q = location.search.replace(/^\?/, '');
   var h = location.hash.replace(/^#/, '');
@@ -35,7 +43,8 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbywHUAVNsVKFqf7Ck7O4MN48q
   }
   // 短寫法：?e=活動代號 等同 ?event=
   q = q.replace(/(^|&)e=/, '$1event=');
-  var url = GAS_URL + (q ? '?' + q : '');
+  var needGas = /(^|&)event=c[a-z0-9]{6}(&|$)/i.test(q) || /(^|&)page=qr(&|$)/i.test(q);
+  var url = (MODE === 'static' && !needGas ? STATIC_URL : GAS_URL) + (q ? '?' + q : '');
   document.getElementById('go').href = url;
   location.replace(url);
 })();
