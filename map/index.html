@@ -102,7 +102,8 @@ select{font:inherit;color:var(--ink);background:var(--chip);border:1px solid var
 body.walking #brand,body.walking #dock,body.walking #floors,body.walking #searchWrap,body.walking #walkBtn,body.walking #notice,body.walking #ver{display:none!important}
 #walkHud{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:max-content;display:flex;gap:12px;align-items:center;padding:8px 8px 8px 14px;max-width:calc(100% - 32px);box-sizing:border-box;z-index:6}
 #walkWhere{font-size:15px;font-weight:700;line-height:1.35;min-width:0}
-#walkExit,#walkPlay{white-space:nowrap;flex:none}
+#walkExit,#walkPlay,#walkSpd{white-space:nowrap;flex:none}
+#walkSpd{font-variant-numeric:tabular-nums}
 #walkPlay{min-width:92px}
 #walkWhere small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
 #walkWhere .arr{color:#1faa59}
@@ -129,7 +130,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.14 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.15 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -140,11 +141,11 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="floors" class="panel" role="group" aria-label="樓層"></div>
 <div id="dock"><button id="cardToggle" class="panel" aria-expanded="true" aria-controls="card">收合 ▾</button><div id="card" class="panel" aria-live="polite"></div></div>
 <div id="notice" class="panel" hidden role="status"></div>
-<div id="walkHud" class="panel" hidden><div id="walkWhere" aria-live="polite"></div><span id="walkTip">WASD／方向鍵走・Q／E 上下樓・空白鍵 自動走</span><button id="walkPlay" class="btn" hidden>▶ 自動走</button><button id="walkExit" class="btn ghost">結束</button></div>
+<div id="walkHud" class="panel" hidden><div id="walkWhere" aria-live="polite"></div><span id="walkTip">WASD／方向鍵走・Shift 跑・F 速度・Q／E 上下樓・空白鍵 自動走</span><button id="walkSpd" class="btn ghost" title="切換走路速度（鍵盤 F）">速度 1×</button><button id="walkPlay" class="btn" hidden>▶ 自動走</button><button id="walkExit" class="btn ghost">結束</button></div>
 <div id="turnCard" hidden><div class="tc-head"><svg id="tcIcon" viewBox="0 0 48 48" aria-hidden="true"></svg><div class="tc-txt"><b id="tcDist"></b><span id="tcText"></span></div></div><div id="tcWin" aria-hidden="true"></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.14 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.15 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -381,7 +382,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.14 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.15 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -1161,7 +1162,7 @@ function pointCard(x,z,kind){ let best=null,bd=1e9; Object.keys(CODE).forEach(k=
          遊戲手把左搖桿移動、十字鍵上下樓（有手把時以手把為主）。
    規則：場景物件全部在這裡一次建好，走路時只改位置與 visible（不在迴圈裡 new Mesh）。
    ===================================================================== */
-var WALK={ghost:null,cmt:null,on:false,ready:false,node:null,a:null,b:null,s:0,len:0,climb:null,hx:0,hz:1,phase:0,amt:0,L:null,hudT:0,hudTxt:'',arrived:null,saved:null,prevFloor:'all',pad:{}};
+var WALK={spd:1,run:false,ghost:null,cmt:null,on:false,ready:false,node:null,a:null,b:null,s:0,len:0,climb:null,hx:0,hz:1,phase:0,amt:0,L:null,hudT:0,hudTxt:'',arrived:null,saved:null,prevFloor:'all',pad:{}};
 const WALK_SPEED=5.5;            /* 公尺／秒（比真人快一些，校園一圈不會走太久） */
 const WALK_ALIGN=0.3;            /* 已經在路上：搖桿和路的夾角餘弦大於這個值就繼續往前／往後 */
 const WALK_TURN=0.05;            /* 站在路口：只要搖桿大致朝向某條路（不是完全垂直或往回）就轉進去。[FIX 1] 原本 0.3 太嚴，斜推會卡住 */
@@ -1399,21 +1400,31 @@ function turnRender(){ if(turnCard.hidden) return; const r=tcWin.getBoundingClie
   renderer.setScissorTest(true); renderer.setScissor(x,y,w,h); renderer.setViewport(x,y,w,h);
   insetCam.aspect=w/h; insetCam.updateProjectionMatrix(); renderer.render(scene,insetCam);
   renderer.setScissorTest(false); renderer.setViewport(0,0,W,H); }
-function walkTick(dt){
+/* 走路速度：1×、2×、3× 循環（手動、自動、上下樓都一起變快）；鍵盤按住 Shift 再加倍 */
+const walkSpdBtn=document.getElementById('walkSpd');
+try{ const v=+localStorage.getItem('campus3d.spd'); if(v>=1&&v<=3) WALK.spd=v; }catch(e){}
+function spdShow(){ walkSpdBtn.textContent='速度 '+WALK.spd+'×'; }
+function spdNext(){ WALK.spd=WALK.spd>=3?1:WALK.spd+1; spdShow(); try{ localStorage.setItem('campus3d.spd',WALK.spd); }catch(e){} }
+spdShow(); walkSpdBtn.addEventListener('click',spdNext);
+window.addEventListener('keydown',e=>{ if(e.key==='Shift') WALK.run=true; if(WALK.on&&(e.key==='f'||e.key==='F')&&!(e.target&&/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) spdNext(); });
+window.addEventListener('keyup',e=>{ if(e.key==='Shift') WALK.run=false; });
+window.addEventListener('blur',()=>{ WALK.run=false; });
+function walkTick(dt0){
+  const sp=WALK.spd*(WALK.run?2:1), dt=dt0;
   const inp=walkInput(); let moved=0;
-  if(WALK.climb){ const c=WALK.climb; c.t=Math.min(1,c.t+dt/c.dur); if(c.t>=1){ WALK.node=c.b; WALK.a=null; WALK.climb=null; } moved=dt*2; }
+  if(WALK.climb){ const c=WALK.climb; c.t=Math.min(1,c.t+dt*sp/c.dur); if(c.t>=1){ WALK.node=c.b; WALK.a=null; WALK.climb=null; } moved=dt*2; }
   else if(inp.m>0.15&&WALK.auto&&WALK.auto.play){ autoPause(); }   /* 推搖桿＝改手動 */
   if(WALK.climb){}
-  else if(WALK.auto&&WALK.auto.play){ moved=autoStep(AUTO_SPEED*dt); }
+  else if(WALK.auto&&WALK.auto.play){ moved=autoStep(AUTO_SPEED*dt*sp); }
   else if(inp.m>0.15){ const s=Math.sin(cam.yaw), co=Math.cos(cam.yaw); let dx=-s*inp.y+co*inp.x, dz=-co*inp.y-s*inp.x; const l=Math.hypot(dx,dz)||1;
-    moved=walkMove(dx/l,dz/l,WALK_SPEED*inp.m*dt); }
+    moved=walkMove(dx/l,dz/l,WALK_SPEED*inp.m*dt*sp); }
   const L=walkPos();
   if(L!==WALK.L){ const first=WALK.L===null, wasOut=WALK.L==='G'; WALK.L=L; const f=L==='G'?'all':L; if(floorFilter!==f) setFloor(f);
     /* 戶外：低角度跟在後面；進到樓層裡：拉高視角，看得到整層的教室配置 */
     if(first||wasOut!==(L==='G')) Object.assign(goal,L==='G'?{pitch:0.62,dist:18}:{pitch:0.95,dist:24}); }
   /* 小人：位置、面向、走路擺動 */
   hero.position.copy(wp); const tgt=Math.atan2(WALK.hx,WALK.hz); let dr=tgt-hero.rotation.y; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); hero.rotation.y+=dr*Math.min(1,dt*12);
-  const going=moved>1e-4; WALK.amt+=((going?1:0)-WALK.amt)*Math.min(1,dt*8); WALK.phase+=dt*(going?9:0);
+  const going=moved>1e-4; WALK.amt+=((going?1:0)-WALK.amt)*Math.min(1,dt*8); WALK.phase+=dt*(going?9*Math.min(2,Math.sqrt(sp)):0);
   const sw=Math.sin(WALK.phase)*0.65*WALK.amt; heroLegs[0].rotation.x=sw; heroLegs[1].rotation.x=-sw; heroArms[0].rotation.x=-sw*0.8; heroArms[1].rotation.x=sw*0.8;
   hero.position.y+=Math.abs(Math.cos(WALK.phase))*0.06*WALK.amt;
   /* 相機：跟在小人後上方；正在拖曳畫面時不搶方向 */
