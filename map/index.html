@@ -111,6 +111,14 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 #joyKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:var(--accent);box-shadow:0 3px 10px rgba(0,0,0,.3);pointer-events:none}
 #walkBtns{position:absolute;right:20px;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;z-index:6}
 #walkBtns .btn{font-size:16px;padding:14px 18px;min-width:124px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#turnCard{position:absolute;right:16px;top:84px;width:min(300px,46vw);z-index:6;border-radius:12px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.3);pointer-events:none}
+.tc-head{display:flex;gap:10px;align-items:center;padding:8px 12px;background:#0f6e3d;color:#fff}
+#tcIcon{width:42px;height:42px;flex:none;fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.tc-txt{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+#tcDist{font-size:20px;font-variant-numeric:tabular-nums}
+#tcText{font-size:14px;font-weight:700}
+#tcWin{aspect-ratio:16/10;border:3px solid #0f6e3d;border-top:0;border-radius:0 0 12px 12px}
+@media (max-height:520px){ #turnCard{top:60px;width:min(240px,34vw)} #tcDist{font-size:16px} }
 #walkTip{font-size:11px;color:var(--muted);white-space:nowrap}
 @media (hover:none){ #walkTip{display:none} }
 @media (max-height:520px){ #joy{width:112px;height:112px;left:14px;bottom:12px} #walkBtns{right:12px;bottom:12px} #walkBtns .btn{padding:10px 14px;font-size:15px} #walkHud{top:6px} }
@@ -121,7 +129,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.13 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.14 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -133,9 +141,10 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="dock"><button id="cardToggle" class="panel" aria-expanded="true" aria-controls="card">收合 ▾</button><div id="card" class="panel" aria-live="polite"></div></div>
 <div id="notice" class="panel" hidden role="status"></div>
 <div id="walkHud" class="panel" hidden><div id="walkWhere" aria-live="polite"></div><span id="walkTip">WASD／方向鍵走・Q／E 上下樓・空白鍵 自動走</span><button id="walkPlay" class="btn" hidden>▶ 自動走</button><button id="walkExit" class="btn ghost">結束</button></div>
+<div id="turnCard" hidden><div class="tc-head"><svg id="tcIcon" viewBox="0 0 48 48" aria-hidden="true"></svg><div class="tc-txt"><b id="tcDist"></b><span id="tcText"></span></div></div><div id="tcWin" aria-hidden="true"></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.13 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.14 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -372,7 +381,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.13 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.14 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -516,8 +525,11 @@ function topTexture(c){
   lines.forEach((ln,i)=>g.fillText(ln,0,y0+i*fs*1.15));
   if(c.codes.length&&bw>44){ g.font='600 13px "Share Tech Mono",monospace'; g.globalAlpha=.9;
     g.fillText('No.'+c.codes[0]+(c.codes.length>1?'–'+c.codes[c.codes.length-1].slice(-2):''),0,-bh/2+13); g.globalAlpha=1; }
-  const t=new THREE.CanvasTexture(cv); t.anisotropy=4; return t;
+  const t=new THREE.CanvasTexture(cv); t.anisotropy=4; t.center.set(0.5,0.5); TOPTEX.push(t); return t;
 }
+/* 屋頂上的字：鏡頭轉到背面（從北往南看）時整片轉 180°，字才不會倒過來 */
+var TOPTEX=[], topFlip=false;
+function topFlipCheck(){ const c=Math.cos(cam.yaw); const want=topFlip? c<0.15 : c<-0.15; if(want!==topFlip){ topFlip=want; TOPTEX.forEach(t=>{ t.rotation=want?Math.PI:0; }); } }
 const pickable=[];
 BUILDINGS.forEach(b=>{
   b.roofs=[]; const roofMat=new THREE.MeshLambertMaterial({color:b.color});
@@ -840,10 +852,11 @@ function animate(){
   const k=1-Math.exp(-dt*6);
   if(WALK.on) walkTick(dt);   /* 走走看：先更新小人，再讓相機跟上 */
   for(const key of ['tx','tz','dist','yaw','pitch','ty0']) cam[key]+=(goal[key]-cam[key])*k;
-  placeCamera();
+  placeCamera(); topFlipCheck();
   if(startRing.visible){ const k=(tAll*0.9)%1; startRing.scale.setScalar(1+k*1.6); startRing.material.opacity=0.85*(1-k); }
   if(pinGem.visible){ pinGem.position.y=pinGem.userData.base+Math.sin(tAll*3)*0.8; pinGem.rotation.y=tAll*1.5; }
   renderer.render(scene,camera);
+  if(WALK&&WALK.on) turnRender();   /* 轉彎提示的小視窗 */
   // 標籤：小畫面提早收起細項；依優先序（起點 > 校舍 > 其他）擺放，會重疊的就先不顯示
   const far=cam.dist*700/Math.min(W,H,700)>300;
   if(labOrder.length!==labels.length){ labOrder=labels.slice().sort((a,b)=>labPri(a)-labPri(b)); if(labRect.length<labels.length*4) labRect=new Float32Array(labels.length*4+64); }
@@ -1329,6 +1342,63 @@ function autoStep(d){ const A=WALK.auto, P=nav.path; if(!A||!P||A.src!==P){ auto
   if(A.k>=P.length-1){ A.play=false; autoBtn(); }
   return moved; }
 walkPlay.addEventListener('click',()=>{ if(WALK.auto&&WALK.auto.play) autoPause(); else autoPlay(); });
+/* =====================================================================
+   轉彎提示（v5.14）：像開車導航一樣，提示下一個動作（左轉、右轉、上下樓、進出校舍），
+   並在右上角小視窗顯示那個路口的畫面。小視窗是同一個場景用第二台相機再畫一次（只畫在那一小塊）。
+   ===================================================================== */
+const TURN={src:null,ms:[],cum:[],prog:0,cur:null};
+const turnCard=document.getElementById('turnCard'), tcWin=document.getElementById('tcWin'), tcIcon=document.getElementById('tcIcon'), tcDist=document.getElementById('tcDist'), tcText=document.getElementById('tcText');
+const insetCam=new THREE.PerspectiveCamera(55,1.6,0.5,800);
+const TC_ICON={S:'M24 42V8M13 19L24 8L35 19',R:'M16 42V26Q16 16 26 16H40M32 8L40 16L32 24',L:'M32 42V26Q32 16 22 16H8M16 8L8 16L16 24',
+  SR:'M17 42V28L35 10M24 10H35V21',SL:'M31 42V28L13 10M24 10H13V21',U:'M32 42V20Q32 9 22 9Q12 9 12 20V32M6 26L12 32L18 26',
+  UP:'M5 42H15V33H25V24H35V15H43M27 6H39V18',DN:'M5 15H15V24H25V33H35V42H43M39 30V42H27',END:'M14 44V6M14 7H38L31 15L38 23H14'};
+function turnBuild(P){ const n=P.length, cum=[0]; for(let i=1;i<n;i++) cum[i]=cum[i-1]+Math.hypot(P[i].wx-P[i-1].wx,P[i].wz-P[i-1].wz);
+  const vert=(a,b)=>typeof a.L==='number'&&typeof b.L==='number'&&a.L!==b.L;
+  /* 往前（後）沿路線走 2.5 公尺，取方向；遇到換樓層就停 */
+  const dirAt=(i,sg)=>{ let j=i; while(true){ const k=j+sg; if(k<0||k>=n||vert(P[j],P[k])) break; j=k; if(Math.abs(cum[j]-cum[i])>=2.5) break; }
+    const dx=(P[j].wx-P[i].wx)*sg, dz=(P[j].wz-P[i].wz)*sg, l=Math.hypot(dx,dz); return l<0.3?null:{x:dx/l,z:dz/l}; };
+  const ms=[];
+  for(let i=1;i<n-1;i++){ const a=P[i], b=P[i+1];
+    if(vert(a,b)){ let j=i+1; while(j+1<n&&vert(P[j],P[j+1])) j++; ms.push({i,kind:'v',up:P[j].L>a.L,lift:!!(a.cell&&a.cell.name==='電梯'),toL:P[j].L,cum:cum[i],din:dirAt(i,-1)||dirAt(j,1)}); i=j; continue; }
+    const din=dirAt(i,-1), dout=dirAt(i,1); let ang=0; if(din&&dout) ang=Math.atan2(din.x*dout.z-din.z*dout.x, din.x*dout.x+din.z*dout.z)*180/Math.PI;   /* 正＝右轉 */
+    const enter=!a.b&&b.b, exit=a.b&&!b.b, turn=Math.abs(ang)>=40;
+    if(!turn&&!enter&&!exit) continue;
+    const last=ms[ms.length-1];
+    if(turn&&last&&last.kind==='t'&&cum[i]-last.cum<3){ const d0=last.din||din; if(d0&&dout){ last.ang=Math.atan2(d0.x*dout.z-d0.z*dout.x, d0.x*dout.x+d0.z*dout.z)*180/Math.PI; last.dout=dout; }   /* 兩個很近的轉彎合成一個：用第一個的進入方向和第二個的離開方向重算 */ if(enter) last.enter=b.b.name; if(exit) last.exit=a.b.name; if(Math.abs(last.ang)<40&&!last.enter&&!last.exit) ms.pop(); continue; }
+    ms.push({i,kind:'t',ang:turn?ang:0,enter:enter?b.b.name:null,exit:exit?a.b.name:null,cum:cum[i],din:din||dout,dout:dout||din}); }
+  ms.push({i:n-1,kind:'end',cum:cum[n-1],din:null});
+  TURN.src=P; TURN.ms=ms; TURN.cum=cum; TURN.prog=0; TURN.cur=null; }
+function turnInfo(m,P){ const nd=P[m.i];
+  if(m.kind==='end') return {ic:'END',t:'抵達「'+nodeLabel(P[P.length-1])+'」'};
+  if(m.kind==='v') return {ic:m.up?'UP':'DN',t:(m.lift?'搭電梯':'走樓梯')+(m.up?'上':'下')+'到 '+FLOORNAME(m.toL)};
+  const a=Math.abs(m.ang), side=m.ang>0?'右':'左';
+  let ic='S', t='直走'; if(a>=150){ ic='U'; t='迴轉'; } else if(a>=65){ ic=m.ang>0?'R':'L'; t=side+'轉'; } else if(a>=40){ ic=m.ang>0?'SR':'SL'; t='往'+side+'前方'; }
+  const at=nd.cell&&nd.cell.type==='stair'?'在樓梯口':'';
+  if(m.enter) t=(ic==='S'?'直走':t)+'，進入'+m.enter; else if(m.exit) t=(ic==='S'?'直走':t)+'，走出'+m.exit; else t=at+t;
+  return {ic,t}; }
+function turnUpdate(){ const P=nav.path;
+  if(!WALK.on||!WALK.ready||!P||P.length<2){ turnCard.hidden=true; return; }
+  if(TURN.src!==P) turnBuild(P);
+  const cum=TURN.cum;
+  if(!WALK.climb){ let best=-1, bd=1e9;   /* 小人目前在路線上走到哪裡（同一層、離路線最近的那一段） */
+    for(let i=0;i+1<P.length;i++){ const a=P[i], b=P[i+1]; if(typeof a.L==='number'&&typeof b.L==='number'&&a.L!==b.L) continue; if(a.L!==WALK.L&&b.L!==WALK.L) continue;   /* 進出校舍那一段（戶外接 1F）也算 */
+      const dx=b.wx-a.wx, dz=b.wz-a.wz, l2=dx*dx+dz*dz; let t=l2>0?((wp.x-a.wx)*dx+(wp.z-a.wz)*dz)/l2:0; t=Math.max(0,Math.min(1,t));
+      const at=cum[i]+t*Math.sqrt(l2), d=Math.hypot(wp.x-a.wx-dx*t,wp.z-a.wz-dz*t)+0.05*Math.abs(at-TURN.prog); if(d<bd){ bd=d; best=at; } }
+    if(best>=0&&bd<12) TURN.prog=best; }
+  const m=TURN.ms.find(m=> m.kind==='v' ? !(TURN.prog>m.cum+0.5||(WALK.L===m.toL&&!WALK.climb&&TURN.prog>=m.cum-0.5)) : TURN.prog<=m.cum+1.5 );
+  if(!m){ turnCard.hidden=true; return; }
+  turnCard.hidden=false;
+  const d=m.cum-TURN.prog; tcDist.textContent=WALK.climb&&m.kind==='v'?'現在':(d<2?'現在':(d<20?Math.round(d):Math.round(d/5)*5)+' 公尺後');
+  if(TURN.cur!==m){ TURN.cur=m; const inf=turnInfo(m,P); tcText.textContent=inf.t; tcIcon.innerHTML='<path d="'+TC_ICON[inf.ic]+'"/>';
+    /* 小視窗相機：站在路口前方高處，看向要轉過去的方向 */
+    const nd=P[m.i], din=m.din||{x:0,z:-1}, dout=m.kind==='t'?(m.dout||din):din, back=m.kind==='end'?10:9;
+    insetCam.position.set(nd.wx-din.x*back, nd.wy+(m.kind==='v'?5:6), nd.wz-din.z*back);
+    insetCam.lookAt(nd.wx+dout.x*4, nd.wy+0.6, nd.wz+dout.z*4); } }
+function turnRender(){ if(turnCard.hidden) return; const r=tcWin.getBoundingClientRect(), c=canvas.getBoundingClientRect(), w=r.width, h=r.height; if(w<20||h<20) return;
+  const x=r.left-c.left, y=c.height-(r.top-c.top)-h;
+  renderer.setScissorTest(true); renderer.setScissor(x,y,w,h); renderer.setViewport(x,y,w,h);
+  insetCam.aspect=w/h; insetCam.updateProjectionMatrix(); renderer.render(scene,insetCam);
+  renderer.setScissorTest(false); renderer.setViewport(0,0,W,H); }
 function walkTick(dt){
   const inp=walkInput(); let moved=0;
   if(WALK.climb){ const c=WALK.climb; c.t=Math.min(1,c.t+dt/c.dur); if(c.t>=1){ WALK.node=c.b; WALK.a=null; WALK.climb=null; } moved=dt*2; }
@@ -1351,7 +1421,7 @@ function walkTick(dt){
   if(going&&!WALK.climb&&pts.size===0){ const want=Math.atan2(-WALK.hx,-WALK.hz); let d=want-goal.yaw; d=Math.atan2(Math.sin(d),Math.cos(d)); goal.yaw+=d*Math.min(1,dt*1.6); }
   /* 上下樓按鈕與位置提示（每 0.2 秒更新一次文字） */
   WALK.hudT-=dt; if(WALK.hudT<=0){ WALK.hudT=0.2;
-    walkGhost(WALK.climb?null:walkInsideCell(L));
+    walkGhost(WALK.climb?null:walkInsideCell(L)); turnUpdate();
     const n=walkStairNode(), eu=walkStairEdge(n,1), ed=walkStairEdge(n,-1);
     wUp.hidden=!eu; wDn.hidden=!ed; walkBtns.hidden=!(eu||ed);
     if(eu) wUp.textContent=eu.kind==='lift'?'▲ 電梯上樓':'▲ 上樓'; if(ed) wDn.textContent=ed.kind==='lift'?'▼ 電梯下樓':'▼ 下樓';
@@ -1369,12 +1439,12 @@ function walkStart(n){ walkInit(); n=n||resolveNode(nav.from)||OUT.G01; if(!n) r
   Object.assign(goal,{dist:18,pitch:0.62,yaw:Math.atan2(-hx,-hz)});
   hero.visible=true; document.body.classList.add('walking'); walkHud.hidden=false; joyEl.hidden=false; hideResults();
   pinBox.visible=pinGem.visible=false; walkSlabVis(); drawPath(nav.path); autoBtn(); }
-function walkStop(){ if(!WALK.on) return; WALK.on=false; walkGhost(null); WALK.auto=null; hero.visible=false; joyEnd(); for(const k in KEYS) KEYS[k]=0;
+function walkStop(){ if(!WALK.on) return; WALK.on=false; walkGhost(null); turnCard.hidden=true; WALK.auto=null; hero.visible=false; joyEnd(); for(const k in KEYS) KEYS[k]=0;
   document.body.classList.remove('walking'); walkHud.hidden=true; joyEl.hidden=true; walkBtns.hidden=true;
   setFloor(WALK.prevFloor); walkSlabVis(); drawPath(nav.path); if(WALK.saved) Object.assign(goal,WALK.saved); }
 document.getElementById('walkBtn').addEventListener('click',()=>walkStart(null));
 document.getElementById('walkExit').addEventListener('click',walkStop);
-window.__campus.walk={play:autoPlay,pause:autoPause,start:walkStart,stop:walkStop,climb:walkClimb,state:WALK,joy:JOY,hero,best:(id,x,z)=>walkBest(id,x,z,-1),tick:walkTick}; window.__campus.EE=EE; window.__campus.cam=cam;
+window.__campus.walk={turn:TURN,play:autoPlay,pause:autoPause,start:walkStart,stop:walkStop,climb:walkClimb,state:WALK,joy:JOY,hero,best:(id,x,z)=>walkBest(id,x,z,-1),tick:walkTick}; window.__campus.EE=EE; window.__campus.cam=cam;
 
 window.__campus.applyNotices=applyNotices; window.__campus.pointCard=pointCard; window.__campus.showEvent=showEvent;
 fromLink(); Object.assign(cam,goal); animate();
