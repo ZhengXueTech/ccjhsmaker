@@ -120,6 +120,13 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 #tcText{font-size:14px;font-weight:700}
 #tcWin{aspect-ratio:16/10;border:3px solid #0f6e3d;border-top:0;border-radius:0 0 12px 12px}
 @media (max-height:520px){ #turnCard{top:60px;width:min(240px,34vw)} #tcDist{font-size:16px} }
+#qrBox{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,20,30,.55)}
+#qrBox .qr-in{width:min(420px,100%);max-height:100%;overflow:auto;box-sizing:border-box;padding:18px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+#qrBox h2{margin:0;font-size:20px;text-wrap:balance}
+#qrImg{width:min(300px,70vw);aspect-ratio:1;background:#fff;padding:10px;border-radius:10px;box-sizing:border-box}
+#qrImg img{width:100%;height:100%;image-rendering:pixelated;display:block}
+#qrUrl{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+.qr-tip{margin:0;font-size:12px;color:var(--muted)}
 #walkTip{font-size:11px;color:var(--muted);white-space:nowrap}
 @media (hover:none){ #walkTip{display:none} }
 @media (max-height:520px){ #joy{width:112px;height:112px;left:14px;bottom:12px} #walkBtns{right:12px;bottom:12px} #walkBtns .btn{padding:10px 14px;font-size:15px} #walkHud{top:6px} }
@@ -130,7 +137,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.15 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.16 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -143,9 +150,10 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="notice" class="panel" hidden role="status"></div>
 <div id="walkHud" class="panel" hidden><div id="walkWhere" aria-live="polite"></div><span id="walkTip">WASD／方向鍵走・Shift 跑・F 速度・Q／E 上下樓・空白鍵 自動走</span><button id="walkSpd" class="btn ghost" title="切換走路速度（鍵盤 F）">速度 1×</button><button id="walkPlay" class="btn" hidden>▶ 自動走</button><button id="walkExit" class="btn ghost">結束</button></div>
 <div id="turnCard" hidden><div class="tc-head"><svg id="tcIcon" viewBox="0 0 48 48" aria-hidden="true"></svg><div class="tc-txt"><b id="tcDist"></b><span id="tcText"></span></div></div><div id="tcWin" aria-hidden="true"></div></div>
+<div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.15 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.16 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -382,7 +390,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.15 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.16 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -738,15 +746,31 @@ function selectRoom(c,opts){
     '<h2>'+esc(displayName(c))+'</h2>'+
     '<div class="row"><span class="chip" style="border-color:'+TYPES[c.type].c+'">'+TYPES[c.type].label+'</span></div>'+
     '<div class="row"><button class="btn" id="bGo">帶我去</button><button class="btn ghost" id="bVia">加為途經點</button></div>'+
-    '<div class="row"><button class="btn ghost" id="bCopy">複製這間的連結</button>'+(c.outdoor?'':'<button class="btn ghost" id="bBld">看整棟</button>')+'<button class="btn ghost" id="bHome">回全校</button>'+(c.outdoor?gmapBtn:'')+'</div>'+
+    '<div class="row"><button class="btn ghost" id="bCopy">複製這間的連結</button><button class="btn ghost" id="bQR">QR Code</button>'+(c.outdoor?'':'<button class="btn ghost" id="bBld">看整棟</button>')+'<button class="btn ghost" id="bHome">回全校</button>'+(c.outdoor?gmapBtn:'')+'</div>'+
     '<input id="linkOut" readonly hidden aria-label="分享連結">';
   card.querySelector('#bCopy').addEventListener('click',()=>copyLink(c));
+  card.querySelector('#bQR').addEventListener('click',()=>showQR(shareURL(c),displayName(c)));
   card.querySelector('#bGo').addEventListener('click',()=>navTo(c));
   card.querySelector('#bVia').addEventListener('click',()=>navVia(c));
   if(!c.outdoor) card.querySelector('#bBld').addEventListener('click',()=>selectBuilding(c.b));
   card.querySelector('#bHome').addEventListener('click',()=>goHome());
   if(!(opts&&opts.keepHash)) try{ history.replaceState(null,'','#r'+c.token); }catch(e){}
 }
+
+/* ---------- QR Code（v5.16）：活動、路線、地點的連結都可以直接顯示成 QR Code ---------- */
+let qrLib=null;
+function loadQR(){ if(window.qrcode) return Promise.resolve(); if(qrLib) return qrLib;
+  qrLib=new Promise((ok,no)=>{ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; sc.onload=ok; sc.onerror=()=>{ qrLib=null; no(); }; document.head.appendChild(sc); }); return qrLib; }
+const qrBox=document.getElementById('qrBox');
+function showQR(url,title){ document.getElementById('qrTitle').textContent=title||'中正國中 3D 校園導覽'; document.getElementById('qrUrl').textContent=(()=>{ try{ return decodeURI(url); }catch(e){ return url; } })(); qrBox.dataset.url=url;
+  const im=document.getElementById('qrImg'); im.innerHTML='<p class="qr-tip">產生中…</p>'; qrBox.hidden=false; document.getElementById('qrClose').focus();
+  loadQR().then(()=>{ const q=qrcode(0,'M'); q.addData(unescape(encodeURIComponent(url))); q.make(); im.innerHTML='<img alt="QR Code" src="'+q.createDataURL(10,2)+'">'; })
+    .catch(()=>{ im.innerHTML='<p class="qr-tip">目前沒有網路，無法產生 QR Code。請改用「複製連結」。</p>'; }); }
+document.getElementById('qrClose').addEventListener('click',()=>{ qrBox.hidden=true; });
+qrBox.addEventListener('click',e=>{ if(e.target===qrBox) qrBox.hidden=true; });
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!qrBox.hidden){ qrBox.hidden=true; e.stopPropagation(); } },true);
+document.getElementById('qrCopy').addEventListener('click',()=>{ const u=qrBox.dataset.url||document.getElementById('qrUrl').textContent, b=document.getElementById('qrCopy');
+  try{ navigator.clipboard.writeText(u).then(()=>{ b.textContent='已複製'; setTimeout(()=>{ b.textContent='複製連結'; },1500); },()=>{}); }catch(e){} });
 function copyLink(c){
   const url=shareURL(c), out=card.querySelector('#linkOut'), bt=card.querySelector('#bCopy');
   const fallback=()=>{ out.hidden=false; out.value=url; out.focus(); out.select(); bt.textContent='請手動複製下方連結'; };
@@ -1070,10 +1094,11 @@ function routeCard(msg,info,stops){ const evTop=nav.event?evBoxHTML(nav.event,tr
   h+='<div class="sub">起點</div><div class="row">'+startSelectHTML()+'</div>';
   if(nav.vias.length){ h+='<div class="sub">途經（照順序）</div><div class="row">'+nav.vias.map((v,i)=>'<button class="chip" data-rm="'+i+'">'+(i+1)+'. '+esc(nodeLabel(resolveNode(v))||v)+(nav.acc&&stepOnly(resolveNode(v))?'（有階梯，略過）':'')+' ✕</button>').join('')+'</div>'; }
   if(info) h+='<ol class="steps">'+info.steps.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>';
-  h+='<div class="row">'+(info?'<button class="btn" id="bRouteWalk">跟著路線走</button><button class="btn ghost" id="bRouteCopy">複製路線連結</button>':'')+'<button class="btn ghost" id="bRouteClear">清除路線</button></div><input id="linkOut" readonly hidden aria-label="路線連結">';
+  h+='<div class="row">'+(info?'<button class="btn" id="bRouteWalk">跟著路線走</button><button class="btn ghost" id="bRouteCopy">複製路線連結</button><button class="btn ghost" id="bRouteQR">QR Code</button>':'')+'<button class="btn ghost" id="bRouteClear">清除路線</button></div><input id="linkOut" readonly hidden aria-label="路線連結">';
   card.innerHTML=evTop+h; card.scrollTop=0; bindNav(card);
   card.querySelectorAll('[data-rm]').forEach(el=>el.addEventListener('click',()=>{ nav.vias.splice(+el.dataset.rm,1); if(nav.to) showRoute(); else routeCard(null); }));
   card.querySelector('#bRouteClear').addEventListener('click',clearRoute);
+  { const bq=card.querySelector('#bRouteQR'); if(bq) bq.addEventListener('click',()=>showQR(routeLink(), nav.event? nav.event.title : nodeLabel(resolveNode(nav.from))+' → '+nodeLabel(resolveNode(nav.to)))); }
   { const bw=card.querySelector('#bRouteWalk'); if(bw) bw.addEventListener('click',()=>{ if(nav.path&&nav.path.length){ walkStart(nav.path[0]); autoPlay(); } }); }
   { const sl=card.querySelector('#navStair'); if(sl) sl.addEventListener('change',()=>{ nav.vias=nav.vias.filter(v=>!/^T\d+$/.test(v)); if(sl.value) nav.vias.push(sl.value); showRoute(); }); }
   { const br=card.querySelector('#bRain'); if(br) br.addEventListener('click',()=>{ nav.rain=!nav.rain; showRoute(); }); const ba=card.querySelector('#bAcc'); if(ba) ba.addEventListener('click',()=>{ nav.acc=!nav.acc; showRoute(); }); }
@@ -1128,12 +1153,13 @@ function evBoxHTML(ev,compact){
       (st.old?'<div class="chg">地點異動：原訂「'+esc(st.old)+'」，改至「'+esc(c?displayName(c):st.place)+'」</div>':'')+(st.note&&!compact?'<div class="nt2">'+esc(st.note)+'</div>':'')+'</li>'; }).join('');
   const multi=ev.stops.length>1, routed=!!(ev.start||ev.vias.length);
   return '<div class="evbox"><div class="sub">活動</div><b>'+esc(ev.title)+'</b>'+(multi||!compact?'<ol class="evstops">'+list+'</ol>':(ev.stops[0]&&ev.stops[0].old?'<div class="chg">地點異動：原訂「'+esc(ev.stops[0].old)+'」</div>':''))+
-    '<div class="row">'+((multi||routed)&&!compact?'<button class="btn" id="bEvRoute">'+(multi?'依序帶我走一遍':'顯示指定路線')+'</button>':'')+'<button class="btn ghost" id="bEvCopy">複製活動連結</button></div></div>'; }
+    '<div class="row">'+((multi||routed)&&!compact?'<button class="btn" id="bEvRoute">'+(multi?'依序帶我走一遍':'顯示指定路線')+'</button>':'')+'<button class="btn ghost" id="bEvCopy">複製活動連結</button><button class="btn ghost" id="bEvQR">QR Code</button></div></div>'; }
 function evRoute(ev){ const toks=ev.stops.map(st=>{ const c=stopCell(st.place); return c?c.token:null; }).filter(Boolean); if(!toks.length) return false;
   if(ev.start&&resolveNode(ev.start)){ nav.from=ev.start; markStart(); }
   nav.event=ev; nav.vias=ev.vias.filter(v=>resolveNode(v)).concat(toks.slice(0,-1)); nav.to=toks[toks.length-1]; showRoute(); return true; }
 card.addEventListener('click',e=>{ const t=e.target.closest&&e.target.closest('[data-evstop]'), ev=nav.event||curEvent; if(t&&ev){ const c=stopCell(ev.stops[+t.dataset.evstop].place); if(c){ nav.event=null; selectRoom(c); card.insertAdjacentHTML('afterbegin','<button class="btn ghost" id="bEvBack">← 回到活動「'+esc(ev.title)+'」</button>'); card.querySelector('#bEvBack').addEventListener('click',()=>showEvent(ev.code)); } }
   const r=e.target.closest&&e.target.closest('#bEvRoute'); if(r&&curEvent) evRoute(curEvent);
+  const eq=e.target.closest&&e.target.closest('#bEvQR'); if(eq&&(nav.event||curEvent)){ const ev3=nav.event||curEvent; showQR(linkFor('#e-'+ev3.code),ev3.title); }
   const cp=e.target.closest&&e.target.closest('#bEvCopy'); if(cp&&(nav.event||curEvent)){ const ev2=nav.event||curEvent, out=card.querySelector('#linkOut'), url=linkFor('#e-'+ev2.code); if(out){ out.hidden=false; out.value=url; out.select(); } try{ navigator.clipboard.writeText(url); }catch(_){} } });
 var curEvent=null;
 function showEvent(code){ if(!eventsLoaded){ pendingEvent=code; return true; }
