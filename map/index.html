@@ -130,14 +130,20 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 #walkTip{font-size:11px;color:var(--muted);white-space:nowrap}
 @media (hover:none){ #walkTip{display:none} }
 @media (max-height:520px){ #joy{width:112px;height:112px;left:14px;bottom:12px} #walkBtns{right:12px;bottom:12px} #walkBtns .btn{padding:10px 14px;font-size:15px} #walkHud{top:6px} }
-@media (max-width:640px){ #walkBtn{padding:8px 10px;font-size:13px} }
+@media (max-width:640px){ #walkBtn{padding:8px 10px;font-size:13px}
+  #walkHud{left:8px;right:8px;top:8px;transform:none;width:auto;max-width:none;gap:6px;padding:6px 6px 6px 10px}
+  #walkWhere{font-size:14px;flex:1 1 auto} #walkWhere small{display:none}
+  #walkHud .btn{padding:7px 9px;font-size:13px} #walkPlay{min-width:0}
+  #turnCard{right:8px;width:min(230px,58vw)} #tcIcon{width:34px;height:34px} #tcDist{font-size:17px} #tcText{font-size:13px} .tc-head{padding:6px 10px;gap:8px}
+  #joy{width:112px;height:112px;left:16px} #joyKnob{width:48px;height:48px;margin:-24px 0 0 -24px}
+  #walkBtns .btn{padding:11px 14px;font-size:15px;min-width:104px} }
 </style>
 
 <canvas id="stage" aria-label="中正國中 3D 校園模型"></canvas>
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.16 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.19 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -153,7 +159,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.16 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.19 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -252,9 +258,9 @@ B1,樓梯,（未公開）,（未公開）,（未公開）,（未公開）,樓梯
 B1,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）
 
 【德馨樓】,－,－,－,－,39,40,41,42
-4F,樓梯,（未公開）,電梯,多功能活動教室,多功能活動教室,多功能活動教室,多功能活動教室,多功能活動教室
-3F,樓梯,WC,電梯,,（未公開）,第二會議室,（未公開）,土城社區大學辦公室
-2F,樓梯,WC,電梯,,活動平台,（未公開）,（未公開）,（未公開）
+4F,樓梯,（未公開）,電梯,平台,多功能活動教室,多功能活動教室,多功能活動教室,多功能活動教室
+3F,樓梯,WC,電梯,（未公開）,（未公開）,第二會議室,（未公開）,土城社區大學辦公室
+2F,樓梯,WC,電梯,挑空,活動平台,（未公開）,（未公開）,（未公開）
 1F,樓梯,WC,電梯,活動平台,（未公開）,（未公開）,（未公開）,
 B1,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）,（未公開）
 
@@ -379,7 +385,7 @@ function typeOf(n){
   if(n==='不開放')return'closed';
   if(/^9\d\d$/.test(n))return'g9'; if(/^8\d\d$/.test(n))return'g8'; if(/^7\d\d$/.test(n))return'g7';
   if(n==='WC')return'wc'; if(/樓梯|電梯/.test(n))return'stair';
-  if(/走廊|走道|平台|露台|穿堂|地板|川堂|^通道$/.test(n))return'open';
+  if(/走廊|走道|平台|露台|穿堂|地板|川堂|^通道$|^挑空$/.test(n))return'open';
   if(/倉庫|儲藏|器材|機房|檔案|^B\d+$|蒸飯|修繕/.test(n))return'other';
   if(/處$|校長室|會議室|人事|會計|辦公室|教師會|家長會|專任|年級$|輔導團|研究室|特教組|進修部$|命題中心|健康中心|合作社|諮商|影印/.test(n))return'office';
   return'special';
@@ -390,7 +396,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.16 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.19 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -549,7 +555,7 @@ BUILDINGS.forEach(b=>{
     const bridge=c.name==='通道', dep=c.dep||(bridge?3:b.d-0.5); let ox=0, oz=0;
     if(bridge){ let nx=-Math.sin(c.phi), nz=Math.cos(c.phi); if(nx*(-0.5-c.wx)+nz*(25.2-c.wz)>0){nx=-nx;nz=-nz;} const k=(b.d-0.5-dep)/2; ox=nx*k; oz=nz*k; }
     const m=new THREE.Mesh(new THREE.BoxGeometry(c.wm-0.25,c.h,dep),[s,s,top,dark,s,s]);
-    m.position.set(c.wx+ox,c.y0+c.h/2,c.wz+oz); m.rotation.y=-c.phi; m.userData.cell=c; c.mesh=m; scene.add(m); pickable.push(m);
+    m.position.set(c.wx+ox,c.y0+c.h/2,c.wz+oz); m.rotation.y=-c.phi; m.userData.cell=c; c.mesh=m; scene.add(m); pickable.push(m); if(c.name==='挑空'){ c.voidCell=true; m.visible=false; }
     if(c.level===b.top&&!c.outer){                 // 屋頂跟著每間教室分段，弧形校舍的屋頂才會跟著彎
       const rf=new THREE.Mesh(new THREE.BoxGeometry(c.wm+0.5,0.3,(c.dep||b.d)+0.8),roofMat);
       rf.position.set(c.wx,b.top*FH-0.07+LIFT,c.wz); rf.rotation.y=-c.phi; rf.userData.building=b; scene.add(rf); pickable.push(rf); b.roofs.push(rf);
@@ -708,7 +714,7 @@ const floorsEl=document.getElementById('floors');
 });
 function setFloor(f){
   floorFilter=f;
-  cells.forEach(c=>{ c.mesh.visible = f==='all' ? true : (f===0 ? c.level===0 : c.level<=f); });
+  cells.forEach(c=>{ c.mesh.visible = !c.voidCell && (f==='all' ? true : (f===0 ? c.level===0 : c.level<=f)); });   /* 挑空：什麼都不畫，看得到下面那層挑高的空間 */
   BUILDINGS.forEach(b=>{ b.roofs.forEach(r=>{r.visible=(f==='all');}); if(b.label) b.label.p.y=(f==='all'?b.top:(f===0?0:Math.min(f,b.top)))*FH+3; });
   stairLabels.forEach(L=>{ L.p.y=(f==='all'?L.stairTop:(f===0?0:Math.min(f,L.stairTop)))*FH+1.2; });
   links.forEach(m=>{ m.visible = f==='all' || (f!==0 && m.userData.level<=f); });
@@ -982,7 +988,7 @@ function resolveNode(tok){ if(!tok) return null; if(CODE[tok]) return CODE[tok];
 function nodeLabel(n){ if(!n) return ''; if(n.code&&n.cell) return n.name; if(n.cell) return displayName(n.cell); return (n.name||'').replace(/^入口：/,'')+(n.name&&/^入口/.test(n.name)?' 入口':''); }
 function dijkstra(src,ocOverride){ const ACC=(typeof nav!=='undefined'&&nav.acc); const OC=ocOverride||((typeof nav!=='undefined'&&nav.rain)?RAIN_COST:OUTDOOR_COST); const dist=new Array(NN.length).fill(Infinity), prev=new Array(NN.length).fill(-1), done=new Array(NN.length).fill(false); dist[src]=0;
   for(;;){ let u=-1,best=Infinity; for(let i=0;i<NN.length;i++) if(!done[i]&&dist[i]<best){best=dist[i];u=i;} if(u<0) break; done[u]=true;
-    for(const e of EE[u]){ if(e.x) continue; if(ACC&&(e.kind==='stair'||(e.kind==='step'&&!e.ramp))) continue; const nd=dist[u]+e.d+e.o*(OC-1); if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u;} } }
+    for(const e of EE[u]){ if(e.x) continue; if(ACC&&(e.kind==='stair'||(e.kind==='step'&&!e.ramp))) continue; const nd=dist[u]+e.d+e.o*(OC-1)+(e.kind==='lift'&&!ACC?6:0);   /* 一般人優先走樓梯，不會爬到一半又改搭電梯；無障礙模式不受影響 */ if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u;} } }
   return {dist,prev}; }
 /* 兩端都在戶外（例如校門到某個入口）：直接走戶外，不必繞進校舍 */
 function pathBetween(a,b){ const r=dijkstra(a.id,(a.L==='G'&&b.L==='G'&&!nav.rain)?1:0); if(!isFinite(r.dist[b.id])) return null; const p=[]; for(let u=b.id;u>=0;u=r.prev[u]) p.push(NN[u]); return p.reverse(); }
@@ -1414,7 +1420,7 @@ function turnUpdate(){ const P=nav.path;
     if(best>=0&&bd<12) TURN.prog=best; }
   const m=TURN.ms.find(m=> m.kind==='v' ? !(TURN.prog>m.cum+0.5||(WALK.L===m.toL&&!WALK.climb&&TURN.prog>=m.cum-0.5)) : TURN.prog<=m.cum+1.5 );
   if(!m){ turnCard.hidden=true; return; }
-  turnCard.hidden=false;
+  turnCard.hidden=false; { const hb=walkHud.getBoundingClientRect(), cb=canvas.getBoundingClientRect(); turnCard.style.top=Math.round(hb.bottom-cb.top+8)+'px'; }   /* 提示卡永遠排在上方狀態列底下，不會互相蓋到 */
   const d=m.cum-TURN.prog; tcDist.textContent=WALK.climb&&m.kind==='v'?'現在':(d<2?'現在':(d<20?Math.round(d):Math.round(d/5)*5)+' 公尺後');
   if(TURN.cur!==m){ TURN.cur=m; const inf=turnInfo(m,P); tcText.textContent=inf.t; tcIcon.innerHTML='<path d="'+TC_ICON[inf.ic]+'"/>';
     /* 小視窗相機：站在路口前方高處，看向要轉過去的方向 */
@@ -1435,6 +1441,8 @@ spdShow(); walkSpdBtn.addEventListener('click',spdNext);
 window.addEventListener('keydown',e=>{ if(e.key==='Shift') WALK.run=true; if(WALK.on&&(e.key==='f'||e.key==='F')&&!(e.target&&/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) spdNext(); });
 window.addEventListener('keyup',e=>{ if(e.key==='Shift') WALK.run=false; });
 window.addEventListener('blur',()=>{ WALK.run=false; });
+/* 手機直式畫面左右很窄：鏡頭拉遠一些，小人才不會佔掉大半個畫面 */
+function walkDist(d){ const a=canvas.clientWidth/Math.max(1,canvas.clientHeight); return a<1? d*Math.min(1.7,1/Math.max(0.45,a)*0.85) : d; }
 function walkTick(dt0){
   const sp=WALK.spd*(WALK.run?2:1), dt=dt0;
   const inp=walkInput(); let moved=0;
@@ -1447,7 +1455,7 @@ function walkTick(dt0){
   const L=walkPos();
   if(L!==WALK.L){ const first=WALK.L===null, wasOut=WALK.L==='G'; WALK.L=L; const f=L==='G'?'all':L; if(floorFilter!==f) setFloor(f);
     /* 戶外：低角度跟在後面；進到樓層裡：拉高視角，看得到整層的教室配置 */
-    if(first||wasOut!==(L==='G')) Object.assign(goal,L==='G'?{pitch:0.62,dist:18}:{pitch:0.95,dist:24}); }
+    if(first||wasOut!==(L==='G')) Object.assign(goal,L==='G'?{pitch:0.62,dist:walkDist(18)}:{pitch:0.95,dist:walkDist(24)}); }
   /* 小人：位置、面向、走路擺動 */
   hero.position.copy(wp); const tgt=Math.atan2(WALK.hx,WALK.hz); let dr=tgt-hero.rotation.y; dr=Math.atan2(Math.sin(dr),Math.cos(dr)); hero.rotation.y+=dr*Math.min(1,dt*12);
   const going=moved>1e-4; WALK.amt+=((going?1:0)-WALK.amt)*Math.min(1,dt*8); WALK.phase+=dt*(going?9*Math.min(2,Math.sqrt(sp)):0);
@@ -1473,7 +1481,7 @@ function walkStart(n){ walkInit(); n=n||resolveNode(nav.from)||OUT.G01; if(!n) r
   let hx=-Math.sin(goal.yaw), hz=-Math.cos(goal.yaw);
   if(nav.path&&nav.path.length>1&&nav.path[0]===n){ const B=nav.path[1], l=Math.hypot(B.wx-n.wx,B.wz-n.wz); if(l>0.1){ hx=(B.wx-n.wx)/l; hz=(B.wz-n.wz)/l; } }
   WALK.hx=hx; WALK.hz=hz; hero.rotation.y=Math.atan2(hx,hz);
-  Object.assign(goal,{dist:18,pitch:0.62,yaw:Math.atan2(-hx,-hz)});
+  Object.assign(goal,{dist:walkDist(18),pitch:0.62,yaw:Math.atan2(-hx,-hz)});
   hero.visible=true; document.body.classList.add('walking'); walkHud.hidden=false; joyEl.hidden=false; hideResults();
   pinBox.visible=pinGem.visible=false; walkSlabVis(); drawPath(nav.path); autoBtn(); }
 function walkStop(){ if(!WALK.on) return; WALK.on=false; walkGhost(null); turnCard.hidden=true; WALK.auto=null; hero.visible=false; joyEnd(); for(const k in KEYS) KEYS[k]=0;
