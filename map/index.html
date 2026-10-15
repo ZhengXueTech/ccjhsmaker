@@ -143,7 +143,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.19 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.30 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -159,7 +159,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.19 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.30 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -359,19 +359,19 @@ const ST='樓梯', SW='樓梯WC', CO='走廊';
 
 // 校舍的位置與外形（教室內容不寫在這裡，由配置圖表格決定）
 const BUILDINGS = [
- { name:'行政大樓', color:0xb8935a, bow:1.5, a:[652,473], b:[909,450], d:12 },
+ { name:'行政大樓', color:0xb8935a, bow:1.5, a:[588,488], b:[942,447], d:12 },   /* 115.10.16 示意圖：直通走道（德馨→力行→仁愛，西側力行→信義）接到行政大樓走廊，剛好落在兩端樓梯旁 */
  { name:'行政大樓', part:'中央廊', hideLabel:true, color:0xb8935a, a:[777,422], b:[767,307], d:8, roof:2 },
  { name:'和平樓', color:0xe85a9b, bow:2, a:[324,734], b:[447,539], d:10 },
- { name:'信義樓', color:0xf29a3d, bow:3, a:[422,518], b:[628,392], d:10 },
- { name:'力行樓', color:0x4f86c6, bow:4, a:[594,318], b:[939,287], d:10 },
- { name:'仁愛樓', color:0x4db8e8, bow:3, a:[919,366], b:[1144,453], d:10 },
+ { name:'信義樓', color:0xf29a3d, bow:3, a:[422,518], b:[650,386], d:10 },
+ { name:'力行樓', color:0x4f86c6, bow:4, a:[600,316], b:[945,287], d:10, passEnds:true, passW:.36 },   /* passEnds：兩端樓梯和教室之間有一條橫穿的走道（現場確認 115.10.15） */
+ { name:'仁愛樓', color:0x4db8e8, bow:3, a:[894,364], b:[1144,453], d:10 },
  { name:'忠孝樓', color:0x8cc65a, bow:2, a:[1124,478], b:[1279,648], d:10 },
  { name:'至善樓', color:0x58bcc4, a:[378,314], b:[600,268], d:10, roof:3 },
- { name:'德馨樓', color:0xf2c200, a:[912,232], b:[1125,203], d:11 },
+ { name:'德馨樓', color:0xf2c200, a:[894,216], b:[1125,203], d:11 },
  { name:'至美樓', part:'北段', hideLabel:true, color:0x9a55b5, a:[1140,208], b:[1228,248], d:9, b1codes:true },
  { name:'至美樓', part:'南段', color:0x9a55b5, a:[1222,268], b:[1150,438], d:9, b1codes:true },
  { name:'至真樓', part:'北段', hideLabel:true, color:0xd9708a, a:[1250,240], b:[1402,246], d:9, b1codes:true },
- { name:'至真樓', part:'南段', color:0xd9708a, a:[1354,272], b:[1322,628], d:9, b1codes:true },
+ { name:'至真樓', part:'南段', color:0xd9708a, a:[1354,272], b:[1322,628], d:9, b1codes:true, endStair:true },   /* endStair：南端是 WC＋樓梯，樓梯橫跨整個深度（走道到樓梯為止） */
 ];
 
 // 類型：顏色與圖例
@@ -384,19 +384,22 @@ function typeOf(n){
   if(n==='（未公開）')return'hidden';
   if(n==='不開放')return'closed';
   if(/^9\d\d$/.test(n))return'g9'; if(/^8\d\d$/.test(n))return'g8'; if(/^7\d\d$/.test(n))return'g7';
-  if(n==='WC')return'wc'; if(/樓梯|電梯/.test(n))return'stair';
+  if(n==='WC')return'wc'; if(/川堂|穿堂/.test(n))return'open';   /* 「中央川堂後半及樓梯」其實是延伸的川堂，不是樓梯 */
+  if(/樓梯|電梯/.test(n))return'stair';
   if(/走廊|走道|平台|露台|穿堂|地板|川堂|^通道$|^挑空$/.test(n))return'open';
   if(/倉庫|儲藏|器材|機房|檔案|^B\d+$|蒸飯|修繕/.test(n))return'other';
   if(/處$|校長室|會議室|人事|會計|辦公室|教師會|家長會|專任|年級$|輔導團|研究室|特教組|進修部$|命題中心|健康中心|合作社|諮商|影印/.test(n))return'office';
   return'special';
 }
 const DEFW={stair:.5,wc:.4,open:.4};
+const GATE_PT=[1.3,49], ADMIN_PT=[-5,-10.6];
+const CORRIDOR_TOWARD={'至美樓南段':ADMIN_PT,'至真樓南段':ADMIN_PT};
 const FLOORNAME=l=>l===0?'B1':l+'F';
 
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.19 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.30 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -424,6 +427,11 @@ BUILDINGS.forEach((b,bi)=>{
     });
     // 未公開的房間：併成一片後再切成等寬小段，才能順著弧形校舍排（等寬，看不出原本的隔間）
     { const ex=[]; row.forEach(c=>{ const n=c.type==='hidden'?Math.max(1,Math.round(c.w)):1; for(let i=0;i<n;i++) ex.push(n>1?Object.assign({},c,{w:c.w/n}):c); }); row.length=0; ex.forEach(c=>row.push(c)); }
+    if(b.passEnds&&L>0&&row.length>2){ const pass=()=>({codes:[],name:'走道',type:'open',w:b.passW||0.55,level:L,b});
+      if(row[0].type==='stair') row.splice(1,0,pass()); if(row[row.length-1].type==='stair') row.splice(row.length-1,0,pass()); }
+    if(b.endStair&&L>0&&row.length>1){ const k=row.length-1, c=row[k];
+      if(c.type==='stair'&&/WC/.test(c.name)) row.splice(k,1,{codes:[],name:'WC',type:'wc',w:.35,level:L,b},{codes:[],name:'樓梯',type:'stair',w:.45,level:L,b,spanCorr:true});
+      else if(c.type==='stair') c.spanCorr=true; }
     // 扇形校舍的轉角：走道橫穿整棟，樓梯和廁所掛在走道外側（不佔校舍長度）
     const os=b.outerStairs||'';
     if(L>0&&row.length>1){ if(os.indexOf('s')>=0&&row[0].type==='stair') row[0].outer='s';
@@ -432,8 +440,10 @@ BUILDINGS.forEach((b,bi)=>{
     row.forEach(c=>{
       if(c.outer){ c.wm=7; c.dep=6; c.lx=c.outer==='s'?0:b.len; }
       else { c.wm=c.w/tot*b.len; c.lx=x+c.wm/2; x+=c.wm; }
-      c.flat=/平台|露台|無屋頂|穿堂|川堂$|^通道$|^走道|^走廊/.test(c.name);   /* 走道、走廊比照穿堂：只畫一片地板，看得穿 */
+      c.flat=/平台|露台|無屋頂|穿堂|川堂|^通道$|^走道|^走廊/.test(c.name);   /* 走道、走廊比照穿堂：只畫一片地板，看得穿 */
       c.y0=(L===0?-FH:(L-1)*FH)+0.1+LIFT; c.h=c.flat?0.3:FH-0.35;
+      c.walkway=c.flat&&/^走道|^走廊/.test(c.name);   /* v5.28：走道、走廊格的樓板和外廊同一個高度、同一個厚度（頂面 = 樓層高度＋0.14） */
+      if(c.walkway){ c.y0=(L===0?-FH:(L-1)*FH)+LIFT-0.1; c.h=0.24; if(L===1){ c.y0=0; c.h=LIFT+0.14; } }   /* 1F 和外廊一樣一路做到地面 */
       const pt=b.at(c.lx); c.wx=pt[0]; c.wz=pt[1]; c.phi=pt[2];
       if(c.type==='hidden'){ c.hcodes=c.codes; c.codes=[]; }   // 門牌只留給「活動限時公開」用，不顯示、不能搜尋
       c.findable=!['stair','wc','open','hidden','closed'].includes(c.type)||/穿堂|平台|電梯/.test(c.name);
@@ -501,7 +511,16 @@ block(784,497,64,22,LIFT,0xe9e4d8);
   m.position.set(x,LIFT/2,z); m.rotation.z=-r[0]*Math.atan2(LIFT,len); scene.add(m); });
 block(784,496,68,26,0.3,0xb8935a,FH-0.2+LIFT);          // 司令台屋頂：貼齊行政大樓二樓樓板
 block(755,506,2.5,2.5,FH-0.2,0x8a949c,LIFT); block(813,506,2.5,2.5,FH-0.2,0x8a949c,LIFT);                 // 司令台
-block(1340,150,340,100,FH*3,0x9aa3a6);                  // 風雨操場
+/* 風雨操場（v5.30）：其實是一座大籃球場，上面加蓋約 3 層樓高的遮雨棚——四周開放，只有柱子和屋頂 */
+{ const cx=1340, cy=150, W=340, D=100, H=FH*3;
+  const fl=flatShape([[cx-W/2,cy-D/2],[cx+W/2,cy-D/2],[cx+W/2,cy+D/2],[cx-W/2,cy+D/2]],0xf0c4d4,0.05,{transparent:true}); groundMats.push(fl.material);
+  [[cx-W/2+12,cx-6],[cx+6,cx+W/2-12]].forEach(r=>{ const c=flatShape([[r[0],cy-D/2+10],[r[1],cy-D/2+10],[r[1],cy+D/2-10],[r[0],cy+D/2-10]],0x2fa85a,0.08,{transparent:true}); groundMats.push(c.material); });   /* 兩面球場 */
+  const colM=new THREE.MeshLambertMaterial({color:0xb7bfc2});
+  for(let i=0;i<=8;i++) [-1,1].forEach(sd=>{ const [x,z]=P(cx-W/2+W*i/8, cy+sd*(D/2-2)); const m=new THREE.Mesh(new THREE.BoxGeometry(0.6,H,0.6),colM); m.position.set(x,H/2,z); scene.add(m); });
+  const roofM=new THREE.MeshLambertMaterial({color:0x9aa3a6,side:THREE.DoubleSide}), [rx,rz]=P(cx,cy), half=D*S/2+1, tilt=0.12;
+  [-1,1].forEach(sd=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(W*S+2,0.25,half/Math.cos(tilt)),roofM); m.position.set(rx,H+0.6+Math.tan(tilt)*half/2,rz+sd*half/2); m.rotation.x=sd*tilt; scene.add(m); });   /* 微微隆起的雙斜屋頂 */
+  const beamM=new THREE.Mesh(new THREE.BoxGeometry(W*S+2,0.5,0.5),colM); beamM.position.set(rx,H+0.3,rz-(D/2-2)*S); scene.add(beamM);
+  const beam2=beamM.clone(); beam2.position.z=rz+(D/2-2)*S; scene.add(beam2); }
 block(1248,722,62,48,6,0xb9a98c);                   // 鄰近建物（非本校，不標示）
 block(742,792,26,40,3.2,0x2f6fb5);                 // 警衛室
 { const [rx,rz]=P(228,860); const rb=new THREE.Mesh(new THREE.BoxGeometry(125*S,4,46*S),new THREE.MeshLambertMaterial({color:0xdfeae6}));
@@ -530,7 +549,7 @@ function topTexture(c){
   const bw=odd?H:W, bh=odd?W:H;
   g.translate(W/2,H/2); g.rotate(r); g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle';
   const F='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
-  let name=c.type==='stair'?(c.name==='電梯'?'電梯':'梯'):c.name; if(c.type==='hidden') name='';
+  let name=c.type==='stair'?(c.name==='電梯'?'電梯':'梯'):c.name; if(c.type==='hidden'||/^走廊|^走道/.test(c.name)) name='';   /* 走廊、走道不印字，畫面比較乾淨 */
   // 自動換行＋縮字
   let fs=Math.min(40,bh*0.3), lines;
   for(;fs>=9;fs-=2){ g.font='700 '+fs+'px '+F; lines=[]; let cur='';
@@ -545,16 +564,17 @@ function topTexture(c){
 /* 屋頂上的字：鏡頭轉到背面（從北往南看）時整片轉 180°，字才不會倒過來 */
 var TOPTEX=[], topFlip=false;
 function topFlipCheck(){ const c=Math.cos(cam.yaw); const want=topFlip? c<0.15 : c<-0.15; if(want!==topFlip){ topFlip=want; TOPTEX.forEach(t=>{ t.rotation=want?Math.PI:0; }); } }
-const pickable=[];
+const pickable=[], CONCRETE=new THREE.MeshLambertMaterial({color:0xcfd4d2});   /* 走廊、轉角樓板、走道格統一用水泥色 */
 BUILDINGS.forEach(b=>{
   b.roofs=[]; const roofMat=new THREE.MeshLambertMaterial({color:b.color});
   b.cells.forEach(c=>{
     const top=new THREE.MeshLambertMaterial({map:topTexture(c)});
     const s=sideMat[c.type];
     // 「通道」是窄窄的空橋：只佔靠後側的一小條，其餘是挑空（例：行政大樓 2F 連接總務處與校長室，下方穿堂上方大半是空的）
-    const bridge=c.name==='通道', dep=c.dep||(bridge?3:b.d-0.5); let ox=0, oz=0;
+    const bridge=c.name==='通道', dep=c.dep||(bridge?3:c.spanCorr?b.d+1.55:b.d-0.5); let ox=0, oz=0;
+    if(c.spanCorr){ const tg=CORRIDOR_TOWARD[b.name+(b.part||'')]||GATE_PT; let nx=-Math.sin(c.phi), nz=Math.cos(c.phi); if(nx*(tg[0]-c.wx)+nz*(tg[1]-c.wz)<0){nx=-nx;nz=-nz;} ox=nx*1.025; oz=nz*1.025; }   /* 樓梯蓋過走廊那一條 */
     if(bridge){ let nx=-Math.sin(c.phi), nz=Math.cos(c.phi); if(nx*(-0.5-c.wx)+nz*(25.2-c.wz)>0){nx=-nx;nz=-nz;} const k=(b.d-0.5-dep)/2; ox=nx*k; oz=nz*k; }
-    const m=new THREE.Mesh(new THREE.BoxGeometry(c.wm-0.25,c.h,dep),[s,s,top,dark,s,s]);
+    const m=c.walkway? new THREE.Mesh(new THREE.BoxGeometry(c.wm+0.02,c.h,b.d-0.5),CONCRETE) : new THREE.Mesh(new THREE.BoxGeometry(c.wm-0.25,c.h,dep),[s,s,top,dark,s,s]);
     m.position.set(c.wx+ox,c.y0+c.h/2,c.wz+oz); m.rotation.y=-c.phi; m.userData.cell=c; c.mesh=m; scene.add(m); pickable.push(m); if(c.name==='挑空'){ c.voidCell=true; m.visible=false; }
     if(c.level===b.top&&!c.outer){                 // 屋頂跟著每間教室分段，弧形校舍的屋頂才會跟著彎
       const rf=new THREE.Mesh(new THREE.BoxGeometry(c.wm+0.5,0.3,(c.dep||b.d)+0.8),roofMat);
@@ -584,21 +604,11 @@ function hull(pts){ // 凸包（monotone chain）
   const lo=[],up=[]; for(const p of pts){ while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop(); lo.push(p); }
   for(const p of pts.slice().reverse()){ while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop(); up.push(p); }
   return lo.slice(0,-1).concat(up.slice(0,-1)); }
-JUNCTIONS.forEach((J,ji)=>{
-  const jm=typeof J[J.length-1]==='number'?new THREE.MeshLambertMaterial({color:J.pop()}):linkMat;
-  const ends=J.map(e=>{ const b=findB(e[0]); if(!b)return null; const t=e[1]==='s'?b.at(0.6):b.at(b.len-0.6), h=b.d/2-0.3;
-    return {top:b.levels[0], c:[[t[0]-Math.sin(t[2])*h, t[1]+Math.cos(t[2])*h],[t[0]+Math.sin(t[2])*h, t[1]-Math.cos(t[2])*h]]}; }).filter(Boolean);
-  for(let L=1;L<=5;L++){
-    const on=ends.filter(e=>e.top>=L); if(on.length<2) continue;
-    const hp=hull(on.flatMap(e=>e.c)); if(hp.length<3) continue;
-    const sh=new THREE.Shape(); hp.forEach((p,i)=>i?sh.lineTo(p[0],-p[1]):sh.moveTo(p[0],-p[1]));
-    const g=new THREE.ExtrudeGeometry(sh,{depth:0.3+ji*0.012,bevelEnabled:false}); g.rotateX(-Math.PI/2);   /* 轉角是走廊，比照穿堂只畫地板；厚度每塊差一點，兩塊重疊時才不會閃 */
-    const m=new THREE.Mesh(g,jm); m.position.y=(L-1)*FH+0.1+LIFT; m.userData.level=L; scene.add(m); links.push(m);
-  }
-});
+const JCOLS=[];   /* 走廊、轉角樓板統一用水泥色；JCOLS＝轉角柱子的位置 */
+JUNCTIONS.forEach(J=>{ if(typeof J[J.length-1]==='number') J.pop(); });   /* 轉角樓板改在外廊那段一起畫（要知道走廊在哪一側才對得齊） */
 
 // 可以走進校舍區的入口（使用者在圖上標的紅色三角），之後導航的路徑會經過這些點
-const ENTRANCES=[['至善樓西側',360,322],['和平樓・信義樓轉角',412,522],['和平樓南端',322,778],['司令台・中央穿堂',784,522],['仁愛樓・忠孝樓轉角',1102,492],['和平樓・信義樓轉角（南）',466,546],['信義樓・行政大樓轉角',628,468],['行政大樓・仁愛樓轉角',932,448],['德馨樓西側',898,218],['至真樓東北角',1405,214],['至真樓西側',1292,476]];
+const ENTRANCES=[['至善樓西側',360,322],['和平樓・信義樓轉角',412,522],['和平樓南端',322,778],['司令台・中央穿堂',784,522],['仁愛樓・忠孝樓轉角',1102,492],['和平樓・信義樓轉角（南）',466,546],['信義樓・行政大樓轉角',577,459],['行政大樓・仁愛樓轉角',952,420],['德馨樓西側',880,248],['至真樓東北角',1405,214],['至真樓西側',1292,476]];
 const entMat=new THREE.MeshLambertMaterial({color:0x1faa59});
 // 忠孝樓前圍籬（幼兒園區隔，不能穿越）
 const FENCE=[[1170,562],[1218,700]];
@@ -721,7 +731,7 @@ function setFloor(f){
   groundMats.forEach(m=>{m.opacity=(f===0?0.25:1); m.depthWrite=(f!==0);});
   treeMesh.visible=(f!==0);
   floorsEl.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(f)===b.dataset.f));
-  walkSlabVis();
+  walkSlabVis(); if(typeof corrVis==='function') try{ corrVis(f); }catch(e){}
 }
 
 /* ---------- 選取 ---------- */
@@ -913,8 +923,6 @@ function animate(){
              行政大樓的走道在後側（跟 2F 通道同一側）。
    節點：每層樓沿走道一串點（兩端、中點、每間教室門口）＋戶外的校門、入口與步道。
    ===================================================================== */
-const GATE_PT=[1.3,49], ADMIN_PT=[-5,-10.6];
-const CORRIDOR_TOWARD={'至美樓南段':ADMIN_PT,'至真樓南段':ADMIN_PT};
 const NN=[], EE=[];
 function addNode(o){ o.id=NN.length; NN.push(o); EE.push([]); return o; }
 const OUTDOOR_COST=1.8, RAIN_COST=8; // 雨天模式用 RAIN_COST； 室內優先：戶外路段的成本加重（只影響選路，不影響顯示的距離）
@@ -938,9 +946,100 @@ BUILDINGS.forEach(b=>{
       up.forEach(u=>{ if(u.cell&&(u.cell.type==='stair'||u.cell.name==='地板')){ const d=Math.abs(u.t-n.t); if(d<bd){bd=d;best=u;} } });
       if(best) n.upOK=1; if(best) linkN(n,best,(n.cell.name==='電梯'&&best.cell.name==='電梯')?'lift':'stair',12); }); });
 });
+/* ---------- 外廊（v5.20）：每層教室前的走廊地板＋矮牆，一路接到轉角；轉角加柱子 ----------
+   走廊在哪一側跟導航路徑網同一套規則（cor）：一般朝正門，至美／至真南段朝行政大樓，行政大樓朝後側。
+   每層兩個 InstancedMesh（地板、矮牆），樓層篩選時整層一起開關。 */
 const endN=(b,L,w)=>{ const a=b&&b.nodes[L]; return a? a.find(n=>w==='m'?n.mid:n.end===w) : null; };
-JUNCTIONS.forEach(J=>{ const m=J.filter(e=>Array.isArray(e)).map(e=>[findB(e[0]),e[1]]).filter(e=>e[0]);
-  for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) for(let L=1;L<=5;L++) linkN(endN(m[i][0],L,m[i][1]),endN(m[j][0],L,m[j][1]),'walk'); });
+const corrLevels={}, JLINKS=[];
+{ const slabG=new THREE.BoxGeometry(1,1,1), slabM=new THREE.MeshLambertMaterial({color:0xcfd4d2}), wallM=new THREE.MeshLambertMaterial({color:0xaeb6b4});
+  const items={}, m4=new THREE.Matrix4(), q=new THREE.Quaternion(), ps=new THREE.Vector3(), sc=new THREE.Vector3(), UP=new THREE.Vector3(0,1,0);
+  const ATTACH=[]; { const cw=findB('行政大樓中央廊'); if(cw) cw.levels.forEach(L=>{ [0,cw.len].forEach(t=>{ const p=cw.at(t); ATTACH.push([p[0],p[1],L,cw.d/2+2.5]); }); }); }
+  const push=(L,kind,x,y,z,ang,lx,ly,lz)=>{ const k=L+':'+kind; (items[k]=items[k]||[]).push([x,y,z,ang,lx,ly,lz]); };
+  /* v5.24：每棟沿長邊取樣，方便判斷「某一點在不在某棟的教室裡、走廊上」 */
+  BUILDINGS.forEach(b=>{ const key=b.name+(b.part||''), tgt=CORRIDOR_TOWARD[key]||GATE_PT; b.smp=[];
+    for(let t=0;t<=b.len+1e-6;t+=Math.min(0.5,b.len)){ const p=b.at(t), nx=-Math.sin(p[2]), nz=Math.cos(p[2]); let sg=(nx*(tgt[0]-p[0])+nz*(tgt[1]-p[1])>0)?1:-1; if(key==='行政大樓') sg=-sg;
+      b.smp.push({t,x:p[0],z:p[1],cx:Math.cos(p[2]),cz:Math.sin(p[2]),nx:nx*sg,nz:nz*sg}); }
+    b.pt=(t,o)=>{ const p=b.at(t), s=b.smp[Math.round(Math.max(0,Math.min(b.len,t))/b.len*(b.smp.length-1))]; return [p[0]+s.nx*o,p[1]+s.nz*o]; };
+    b.loc=P=>{ let best=null,bd=1e9; for(const s of b.smp){ const d=(P[0]-s.x)**2+(P[1]-s.z)**2; if(d<bd){bd=d;best=s;} }
+      return {t:best.t+(P[0]-best.x)*best.cx+(P[1]-best.z)*best.cz, o:(P[0]-best.x)*best.nx+(P[1]-best.z)*best.nz}; }; });
+  const W0=b=>b.d/2-0.25, W1=b=>b.d/2+1.8;
+  /* 外廊的範圍：一般是整棟；endStair 的到樓梯為止；corrExt 的再往外延伸 */
+  const corrRange=(b,L)=>{ const ex=b.corrExt||{}; let t0=-(ex.s||0), t1=b.len+(ex.e||0);
+    const sc=b.cells.find(c=>c.level===L&&c.spanCorr); if(sc){ if(sc.lx>b.len/2) t1=sc.lx-sc.wm/2; else t0=sc.lx+sc.wm/2; } return [t0,t1]; };
+  const inBody=(b,P,L)=>{ if(!b.levels.includes(L)) return false; const l=b.loc(P); return l.t>-0.05&&l.t<b.len+0.05&&Math.abs(l.o)<b.d/2; };
+  const inCorr=(b,P,L)=>{ if(L<1||!b.levels.includes(L)||b.key==='行政大樓中央廊') return false; const l=b.loc(P), r=corrRange(b,L); return l.t>r[0]-0.05&&l.t<r[1]+0.05&&l.o>W0(b)&&l.o<W1(b); };
+  const inPoly=(P,poly)=>{ let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const a=poly[i],d=poly[j]; if(((a[1]>P[1])!==(d[1]>P[1]))&&(P[0]<(d[0]-a[0])*(P[1]-a[1])/(d[1]-a[1])+a[0])) c=!c; } return c; };
+  /* 轉角接法（v5.24）：兩棟各找一個「接口」，取距離最近的一對連成一座筆直的橋。
+     接口＝走廊末端，或靠近末端的橫穿走道／走廊格子的背面（例：力行樓東端走道接德馨樓、信義樓東端走廊接力行樓） */
+  const anchors=(b,e,L)=>{ const rr=corrRange(b,L), tE=e==='s'?rr[0]:rr[1], out=[{seg:[b.pt(tE,W0(b)),b.pt(tE,W1(b))],node:endN(b,L,e)}];
+    /* 走廊外緣靠近端點那 12 公尺，每 1.5 公尺取一段（別棟的走道可能落在走廊中段，例：直通走道接行政大樓走廊、就在樓梯旁） */
+    for(let k=0;k<=8;k++){ const tc=e==='s'?1.3+k*1.5:b.len-1.3-k*1.5; if(tc<1.3||tc>b.len-1.3) break; const p=b.pt(tc,W1(b));
+      const nd=(b.nodes[L]||[]).reduce((m,n)=>!m||Math.hypot(n.x-p[0],n.z-p[1])<Math.hypot(m.x-p[0],m.z-p[1])?n:m,null);
+      out.push({seg:[b.pt(tc-1.3,W1(b)-0.05),b.pt(tc+1.3,W1(b)-0.05)],node:nd||endN(b,L,e)}); }   /* 走廊末端的端面，或走廊外緣最後一段（橋從側面接出去時用） */
+    b.cells.filter(c=>c.level===L&&c.type==='open'&&/走廊|走道/.test(c.name)&&Math.abs(c.lx-tE)<9).forEach(c=>{
+      const h=c.wm/2*0.92; out.push({seg:[b.pt(c.lx-h,-b.d/2+0.05),b.pt(c.lx+h,-b.d/2+0.05)],node:c.node||endN(b,L,e)}); out.push({seg:[b.pt(c.lx-h,W1(b)-0.05),b.pt(c.lx+h,W1(b)-0.05)],node:c.node||endN(b,L,e)}); });   /* 走道背面，或走道前面的走廊外緣 */
+    return out; };
+  const mid=s=>[(s[0][0]+s[1][0])/2,(s[0][1]+s[1][1])/2];
+  const PLATES={};   // 每層的轉角樓板（多邊形）
+  JUNCTIONS.forEach((J,ji)=>{ const A=findB(J[0][0]), B=findB(J[1][0]); if(!A||!B) return;
+    for(let L=1;L<=5;L++){ if(!A.levels.includes(L)||!B.levels.includes(L)) continue;
+      let best=null,bd=1e9; anchors(A,J[0][1],L).forEach(x=>anchors(B,J[1][1],L).forEach(y=>{ const m1=mid(x.seg),m2=mid(y.seg), d=Math.hypot(m1[0]-m2[0],m1[1]-m2[1]); if(d<bd){bd=d;best=[x,y];} }));
+      JLINKS.push([best[0].node,best[1].node]);
+      const hp=hull(best[0].seg.concat(best[1].seg)); if(hp.length<3) continue;
+      (PLATES[L]=PLATES[L]||[]).push({poly:hp,ji,top:L===Math.min(A.top,B.top),A,B}); } });
+  const covered=(P,L,self)=>BUILDINGS.some(o=>o!==self&&(inBody(o,P,L)||inCorr(o,P,L)))||(PLATES[L]||[]).some(pl=>inPoly(P,pl.poly));
+  /* 外廊：地板＋矮牆。矮牆 1F 不做；外面接著別的走廊、轉角樓板或校舍的那一段留開口 */
+  BUILDINGS.forEach(b=>{ const key=b.key; if(key==='行政大樓中央廊') return;
+    const w0=W0(b), w1=W1(b), md=(w0+w1)/2;
+    b.levels.forEach(L=>{ if(L<1) return; const base=(L-1)*FH+LIFT, r=corrRange(b,L), steps=Math.max(2,Math.ceil((r[1]-r[0])/2.5));
+      for(let i=0;i<steps;i++){ const t0=r[0]+(r[1]-r[0])*i/steps, t1=r[0]+(r[1]-r[0])*(i+1)/steps, a=b.pt(t0,md), c=b.pt(t1,md);
+        const len=Math.hypot(c[0]-a[0],c[1]-a[1])+0.25, ang=-Math.atan2(c[1]-a[1],c[0]-a[0]);
+        if(L===1) push(L,'s',(a[0]+c[0])/2,(base+0.14)/2,(a[1]+c[1])/2,ang,len,base+0.14,w1-w0); else push(L,'s',(a[0]+c[0])/2,base+0.02,(a[1]+c[1])/2,ang,len,0.24,w1-w0);
+        if(L<2) continue;
+        const n=4; for(let k=0;k<n;k++){ const ta=t0+(t1-t0)*k/n, tb=t0+(t1-t0)*(k+1)/n, tm=(ta+tb)/2, pm=b.pt(tm,w1-0.08), qo=b.pt(tm,w1+0.45);
+          if(ATTACH.some(q=>q[2]===L&&Math.hypot(q[0]-pm[0],q[1]-pm[1])<q[3])||covered(qo,L,b)) continue;
+          const pa=b.pt(ta,w1-0.08), pb=b.pt(tb,w1-0.08);
+          push(L,'w',pm[0],base+0.62,pm[1],-Math.atan2(pb[1]-pa[1],pb[0]-pa[0]),Math.hypot(pb[0]-pa[0],pb[1]-pa[1])+0.06,1.0,0.16); } } }); });
+  /* 轉角樓板＋露在外面那幾邊的矮牆；1F 一路做到地面 */
+  Object.keys(PLATES).forEach(Ls=>{ const L=+Ls, base=(L-1)*FH+LIFT;
+    PLATES[L].forEach(pl=>{ const hp=pl.poly;
+      const sh=new THREE.Shape(); hp.forEach((p,i)=>i?sh.lineTo(p[0],-p[1]):sh.moveTo(p[0],-p[1]));
+      const dep=(L===1?base+0.14:0.24)+pl.ji*0.002, g=new THREE.ExtrudeGeometry(sh,{depth:dep,bevelEnabled:false}); g.rotateX(-Math.PI/2);   /* 和外廊同厚度、同頂面 */
+      const m=new THREE.Mesh(g,CONCRETE); m.position.y=L===1?0:base-0.1; m.userData.level=L; scene.add(m); links.push(m);
+      if(pl.top) hp.forEach(p=>JCOLS.push([p[0],p[1],L]));
+      if(L<2) return;
+      const cx=hp.reduce((s,p)=>s+p[0],0)/hp.length, cz=hp.reduce((s,p)=>s+p[1],0)/hp.length;
+      hp.forEach((p,i)=>{ const r=hp[(i+1)%hp.length], el=Math.hypot(r[0]-p[0],r[1]-p[1]); if(el<0.3) return;
+        const ux=(r[0]-p[0])/el, uz=(r[1]-p[1])/el; let nx=-uz, nz=ux; const mx=(p[0]+r[0])/2, mz=(p[1]+r[1])/2; if(nx*(mx-cx)+nz*(mz-cz)<0){nx=-nx;nz=-nz;}
+        const n=Math.max(1,Math.round(el/0.8)), sl=el/n;
+        for(let k=0;k<n;k++){ const sx=p[0]+ux*sl*(k+0.5), sz=p[1]+uz*sl*(k+0.5);
+          if(covered([sx+nx*0.45,sz+nz*0.45],L,null)&&true) continue;
+          if((PLATES[L]||[]).some(o=>o!==pl&&inPoly([sx+nx*0.45,sz+nz*0.45],o.poly))) continue;
+          push(L,'w',sx-nx*0.08,base+0.62,sz-nz*0.08,-Math.atan2(uz,ux),sl+0.06,1.0,0.16); } }); }); });
+  /* v5.25：校舍端點的走廊／走道格（例：仁愛樓西端、信義樓東端）露在外面的那幾邊加矮牆；接橋、接別棟的地方留開口 */
+  cells.forEach(c=>{ const b=c.b, L=c.level; if(L<2||!c.flat||!/走廊|走道/.test(c.name)||b.key==='行政大樓中央廊') return; const base=(L-1)*FH+LIFT;
+    const ta=c.lx-c.wm/2, tb=c.lx+c.wm/2, edges=[[[ta,-b.d/2],[tb,-b.d/2],[0,-1]]];
+    if(ta<0.2) edges.push([[0,-b.d/2],[0,W1(b)],[-1,0]]); if(tb>b.len-0.2) edges.push([[b.len,-b.d/2],[b.len,W1(b)],[1,0]]);   /* 端牆一路接到外廊外緣，和外廊矮牆接起來 */
+    edges.forEach(([u,v,dir])=>{ const n=Math.max(1,Math.round(Math.hypot(v[0]-u[0],v[1]-u[1])/0.8));
+      for(let k=0;k<n;k++){ const f0=k/n, f1=(k+1)/n, P0=b.pt(u[0]+(v[0]-u[0])*f0,u[1]+(v[1]-u[1])*f0), P1=b.pt(u[0]+(v[0]-u[0])*f1,u[1]+(v[1]-u[1])*f1);
+        const tm=u[0]+(v[0]-u[0])*(f0+f1)/2, om=u[1]+(v[1]-u[1])*(f0+f1)/2, qo=b.pt(tm+dir[0]*0.45,om+dir[1]*0.45), pm=b.pt(tm-dir[0]*0.08,om-dir[1]*0.08);
+        if(covered(qo,L,b)) continue;
+        push(L,'w',pm[0],base+0.62,pm[1],-Math.atan2(P1[1]-P0[1],P1[0]-P0[0]),Math.hypot(P1[0]-P0[0],P1[1]-P0[1])+0.06,1.0,0.16); } }); });
+  /* v5.25：行政大樓接仁愛樓、接信義樓的最高層（3F）連通走道有屋頂 */
+  const ROOFM=new THREE.MeshLambertMaterial({color:0xb8935a});
+  Object.keys(PLATES).forEach(Ls=>{ const L=+Ls; PLATES[L].forEach(pl=>{ const adm=[pl.A,pl.B].find(x=>x.key==='行政大樓'); if(!adm||L<2||L!==adm.top) return;
+    const sh=new THREE.Shape(); pl.poly.forEach((p,i)=>i?sh.lineTo(p[0],-p[1]):sh.moveTo(p[0],-p[1]));
+    const g=new THREE.ExtrudeGeometry(sh,{depth:0.3,bevelEnabled:false}); g.rotateX(-Math.PI/2);
+    const m=new THREE.Mesh(g,ROOFM); m.position.y=L*FH+LIFT-0.3; m.userData.level=L; scene.add(m); links.push(m);
+    pl.poly.forEach(p=>JCOLS.push([p[0],p[1],L+1])); }); });
+  /* 轉角柱子：從地面到該轉角最高那層的樓板（有屋頂的撐到屋頂） */
+  JCOLS.forEach(([x,z,L])=>{ const h=(L-1)*FH+LIFT+0.3; push(1,'c',x,h/2,z,0,0.38,h,0.38); });
+  Object.keys(items).forEach(k=>{ const [L,kind]=k.split(':'), list=items[k], im=new THREE.InstancedMesh(slabG,kind==='w'?wallM:kind==='c'?wallM:slabM,list.length);
+    list.forEach((v,i)=>{ q.setFromAxisAngle(UP,v[3]); ps.set(v[0],v[1],v[2]); sc.set(v[4],v[5],v[6]); m4.compose(ps,q,sc); im.setMatrixAt(i,m4); });
+    im.userData.level=kind==='c'?0:+L; scene.add(im); (corrLevels[im.userData.level]=corrLevels[im.userData.level]||[]).push(im); }); }
+function corrVis(f){ Object.keys(corrLevels).forEach(L=>corrLevels[L].forEach(m=>{ m.visible = +L===0 ? (f==='all') : (f==='all'||(f!==0&&+L<=f)); })); }
+corrVis(typeof floorFilter==='undefined'?'all':floorFilter);
+JLINKS.forEach(([a,b])=>linkN(a,b,'walk'));   /* 轉角：接到上面選好的接口（走廊末端或橫穿走道） */
 for(let L=0;L<=5;L++){ const sN=endN(findB('至真樓南段'),L,'s'), arr=(findB('至真樓北段').nodes[L]||[]).slice(); if(!sN||!arr.length) continue;   // L 型轉角：南段走廊接到北段走廊上最近的那一點，不繞到北段東端
   arr.sort((p,q)=>Math.hypot(p.x-sN.x,p.z-sN.z)-Math.hypot(q.x-sN.x,q.z-sN.z)); linkN(arr[0],sN,'walk'); }
 for(let L=1;L<=3;L++) linkN(endN(findB('行政大樓'),L,'m'),endN(findB('行政大樓中央廊'),L,'s'),'walk');
@@ -951,7 +1050,7 @@ const OUT={};
 function outN(id,name,px,py){ const [x,z]=P(px,py); return OUT[id]=addNode({x,z,y:0.6,L:'G',b:null,name,code:name?id:null}); }
 [['G01','正門',815,788],['G02','後門',760,168],['G03','側門（風雨操場側）',1140,110],['G04','側門（停車場側）',400,902],['G05','汽車停車場',290,560],
  ['G06','入口：至善樓西側',360,322],['G07','入口：和平樓・信義樓轉角',412,522],['G08','入口：和平樓南端',322,778],['G09','入口：司令台',784,524],['G10','入口：仁愛樓・忠孝樓轉角',1102,492],
- ['G11','入口：和平樓・信義樓轉角（南）',466,546],['G12','入口：信義樓・行政大樓轉角',628,468],['G13','入口：行政大樓・仁愛樓轉角',932,448],['G14','入口：德馨樓西側',898,218],['G15','入口：至真樓東北角',1405,214],['G16','入口：至真樓西側',1292,476],['w12','',1235,462],
+ ['G11','入口：和平樓・信義樓轉角（南）',466,546],['G12','入口：信義樓・行政大樓轉角',577,459],['G13','入口：行政大樓・仁愛樓轉角',952,420],['G14','入口：德馨樓西側',880,248],['G15','入口：至真樓東北角',1405,214],['G16','入口：至真樓西側',1292,476],['w12','',1235,462],
  ['w1','',805,770],['w2','',800,655],['w3','',540,785],['w4','',535,655],['w5','',540,532],['w6','',1090,785],['w7','',1095,655],['w8','',1090,530],
  ['w9','',400,805],['w10','',300,330],['w11','',1300,215]].forEach(a=>outN(a[0],a[1],a[2],a[3]));
 [['G01','w1'],['w1','w2'],['w2','G09'],['w1','w3'],['w3','w4'],['w4','w5'],['w5','G07'],['w5','G09'],['w8','G09'],['w8','G10'],['w1','w6'],['w6','w7'],['w7','w8'],
@@ -972,9 +1071,10 @@ cells.filter(c=>c.outdoor).forEach(c=>{ let best=null,bd=1e9; outList.forEach(o=
 // 樓梯口定位代號（之後貼 QR 用）：依校舍順序把 1F 的樓梯編成 T01、T02…
 /* 樓梯口代號固定表（115.10.14 定案，已印成 QR 牌貼在現場）：依「哪一棟＋位置」對應，不再照順序編號。
    配置圖 1F 增減樓梯格子時，舊代號不會移動；新增的樓梯自動拿 T16 以後的號碼；拿掉的樓梯代號就空著不再使用。 */
-const STAIR_CODES=[['T01','行政大樓',-26.2,-13.9],['T02','行政大樓',16.2,-17.6],['T03','和平樓',-82.7,38],['T04','信義樓',-65,0.6],
- ['T05','力行樓',-33.8,-33.9],['T06','力行樓',-7.5,-39.2],['T07','力行樓',19.4,-38.6],['T08','至善樓',-75,-33.6],['T09','至善樓',-38.2,-41.2],
- ['T10','德馨樓',21.3,-47.8],['T11','德馨樓',28.5,-48.7],['T12','至美樓北段',71.6,-47.1],['T13','至美樓南段',61.6,-23.5],['T14','至真樓北段',103.2,-46.1],['T15','至真樓南段',89.5,15.2]];
+const STAIR_CODES=[   /* 115.10.16 依示意圖對齊直通走道，行政／力行／德馨的座標跟著更新（代號不變） */
+['T01','行政大樓',-36.6,-11.4],['T02','行政大樓',21.1,-18.0],['T03','和平樓',-82.7,38],['T04','信義樓',-65,0.6],
+ ['T05','力行樓',-33.0,-34.1],['T06','力行樓',-7.5,-39.2],['T07','力行樓',20.8,-38.6],['T08','至善樓',-75,-33.6],['T09','至善樓',-38.2,-41.2],
+ ['T10','德馨樓',17.9,-50.4],['T11','德馨樓',25.7,-50.9],['T12','至美樓北段',71.6,-47.1],['T13','至美樓南段',61.6,-23.5],['T14','至真樓北段',103.2,-46.1],['T15','至真樓南段',89.4,16.6]];
 const CODE={}; { const free=[];
   BUILDINGS.forEach(b=>(b.nodes[1]||[]).forEach(n=>{ if(!(n.cell&&n.cell.type==='stair')) return; n.name=b.name+' 1F '+(n.cell.name==='樓梯WC'?'樓梯':n.cell.name);
     let best=null, bd=8; STAIR_CODES.forEach(s=>{ if(s[1]!==b.key||CODE[s[0]]) return; const d=Math.hypot(s[2]-n.x,s[3]-n.z); if(d<bd){ bd=d; best=s[0]; } });
@@ -983,7 +1083,9 @@ const CODE={}; { const free=[];
 outList.forEach(o=>{ if(o.code) CODE[o.code]=o; });
 const START_OPTS=outList.filter(o=>o.code);
 
-function resolveNode(tok){ if(!tok) return null; if(CODE[tok]) return CODE[tok];
+/* 已取消的樓梯代號：T06 原本以為是樓梯，其實是延伸的川堂。已印出的 QR 牌仍可用，改指到那一格 */
+const RETIRED_CODES={T06:'中央川堂後半及樓梯'};
+function resolveNode(tok){ if(!tok) return null; if(CODE[tok]) return CODE[tok]; if(RETIRED_CODES[tok]) tok=RETIRED_CODES[tok];
   const c=cells.find(x=>x.token===tok)||cells.find(x=>x.codes.includes(tok)||x.name===tok); return c&&c.node? c.node : null; }
 function nodeLabel(n){ if(!n) return ''; if(n.code&&n.cell) return n.name; if(n.cell) return displayName(n.cell); return (n.name||'').replace(/^入口：/,'')+(n.name&&/^入口/.test(n.name)?' 入口':''); }
 function dijkstra(src,ocOverride){ const ACC=(typeof nav!=='undefined'&&nav.acc); const OC=ocOverride||((typeof nav!=='undefined'&&nav.rain)?RAIN_COST:OUTDOOR_COST); const dist=new Array(NN.length).fill(Infinity), prev=new Array(NN.length).fill(-1), done=new Array(NN.length).fill(false); dist[src]=0;
@@ -1237,7 +1339,7 @@ function walkInit(){ if(WALK.ready) return; WALK.ready=true;
     for(let i=0;i<hs.length;i++) for(let j=i+1;j<hs.length;j++){ const a=NN[hs[i].to], c=NN[hs[j].to]; if(a.L!==c.L||a.L!==m.L) continue;
       const ax=a.wx-m.wx, az=a.wz-m.wz, cx=c.wx-m.wx, cz=c.wz-m.wz, la=Math.hypot(ax,az), lc=Math.hypot(cx,cz); if(la<0.6||lc<0.6||Math.min(la,lc)>6) continue;
       if((ax*cx+az*cz)/(la*lc)>0.6){ const e1=hs[i], e2=hs[j]; WE[a.id].push({to:c.id,kind:'walk',d:0,o:0,via:[e1,e2]}); WE[c.id].push({to:a.id,kind:'walk',d:0,o:0,via:[e1,e2]}); } } });
-  const byL={}; NN.forEach(a=>EE[a.id].forEach(e=>{ const b=NN[e.to]; if(e.kind!=='walk'||a.id>b.id||!a.b||!b.b||a.L!==b.L) return; (byL[a.L]=byL[a.L]||[]).push([a,b]); }));
+  const byL={}; if(false) NN.forEach(a=>EE[a.id].forEach(e=>{   /* v5.20 起走廊常駐顯示，不再另畫走走看用的地板 */ const b=NN[e.to]; if(e.kind!=='walk'||a.id>b.id||!a.b||!b.b||a.L!==b.L) return; (byL[a.L]=byL[a.L]||[]).push([a,b]); }));
   const geo=new THREE.BoxGeometry(1,1,1), mat=new THREE.MeshLambertMaterial({color:0xd5d9d2}), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), ps=new THREE.Vector3(), sc=new THREE.Vector3(), up=new THREE.Vector3(0,1,0);
   Object.keys(byL).forEach(L=>{ const list=byL[L], im=new THREE.InstancedMesh(geo,mat,list.length);
     list.forEach(([a,b],i)=>{ const dx=b.wx-a.wx, dz=b.wz-a.wz, len=Math.hypot(dx,dz); q.setFromAxisAngle(up,-Math.atan2(dz,dx)); ps.set((a.wx+b.wx)/2,a.wy-0.08,(a.wz+b.wz)/2); sc.set(len+1.5,0.16,1.6); m4.compose(ps,q,sc); im.setMatrixAt(i,m4); });
@@ -1292,7 +1394,14 @@ function walkMove(dx,dz,dist){ let left=dist, guard=0, moved=0;
   return moved; }
 /* 目前位置（世界座標）與所在樓層 */
 const wp=new THREE.Vector3();
-function walkPos(){ if(WALK.climb){ const c=WALK.climb, A=NN[c.a], B=NN[c.b], t=c.t, e=t*t*(3-2*t); wp.set(A.wx+(B.wx-A.wx)*e, A.wy+(B.wy-A.wy)*e, A.wz+(B.wz-A.wz)*e); return t<0.5?A.L:B.L; }
+/* [FIX 7] 上下樓分三段：從走廊走進樓梯間 → 在樓梯間裡上下 → 走出來到另一層走廊（原本是在走廊外面直直往上飄） */
+function walkPos(){ if(WALK.climb){ const c=WALK.climb, A=NN[c.a], B=NN[c.b], t=c.t, sm=k=>k*k*(3-2*k);
+    const cx=((A.cell?A.cell.wx:A.wx)+(B.cell?B.cell.wx:B.wx))/2, cz=((A.cell?A.cell.wz:A.wz)+(B.cell?B.cell.wz:B.wz))/2;
+    const head=(x0,z0,x1,z1)=>{ const l=Math.hypot(x1-x0,z1-z0); if(l>0.2){ WALK.hx=(x1-x0)/l; WALK.hz=(z1-z0)/l; } };
+    if(t<0.25){ const k=sm(t/0.25); wp.set(A.wx+(cx-A.wx)*k, A.wy, A.wz+(cz-A.wz)*k); head(A.wx,A.wz,cx,cz); }
+    else if(t<0.75){ const k=sm((t-0.25)/0.5); wp.set(cx, A.wy+(B.wy-A.wy)*k, cz); }
+    else { const k=sm((t-0.75)/0.25); wp.set(cx+(B.wx-cx)*k, B.wy, cz+(B.wz-cz)*k); head(cx,cz,B.wx,B.wz); }
+    return t<0.5?A.L:B.L; }
   if(WALK.a===null){ const n=NN[WALK.node]; wp.set(n.wx,n.wy,n.wz); return n.L; }
   const A=NN[WALK.a], B=NN[WALK.b], t=WALK.len>0?WALK.s/WALK.len:0; wp.set(A.wx+(B.wx-A.wx)*t, A.wy+(B.wy-A.wy)*t, A.wz+(B.wz-A.wz)*t); return t<0.5?A.L:B.L; }
 /* 附近可以上下樓的節點（站在節點上，或離路段端點 2.5 公尺內） */
@@ -1308,7 +1417,7 @@ function walkStairEdge(n,dir){ if(!n||n.L==='G') return null; let best=null;
     if(dir>0?B.L>n.L:B.L<n.L){ if(!best||e.kind==='lift') best=e; } }
   return best; }
 function walkClimb(dir){ if(WALK.auto&&WALK.auto.play) autoPause(); const n=walkStairNode(), e=walkStairEdge(n,dir); if(!e) return;
-  WALK.node=n.id; WALK.a=null; WALK.climb={a:n.id,b:e.to,t:0,dur:e.kind==='lift'?2.2:1.3}; }
+  WALK.node=n.id; WALK.a=null; WALK.climb={a:n.id,b:e.to,t:0,dur:e.kind==='lift'?3:2.2}; }
 wUp.addEventListener('click',()=>walkClimb(1)); wDn.addEventListener('click',()=>walkClimb(-1));
 
 /* 搖桿：Pointer Events＋setPointerCapture，各自追蹤 pointerId；放開或取消都歸零 */
@@ -1367,7 +1476,7 @@ function autoPause(){ if(WALK.auto) WALK.auto.play=false; autoBtn(); }
 function autoStep(d){ const A=WALK.auto, P=nav.path; if(!A||!P||A.src!==P){ autoPause(); return 0; } let moved=0;
   while(d>1e-4&&A.k<P.length-1){ const a=P[A.k], b=P[A.k+1];
     if(typeof a.L==='number'&&typeof b.L==='number'&&a.L!==b.L){ const lift=a.cell&&a.cell.name==='電梯'&&b.cell&&b.cell.name==='電梯';
-      WALK.node=a.id; WALK.a=null; WALK.climb={a:a.id,b:b.id,t:0,dur:lift?2.2:1.3}; A.k++; return moved; }
+      WALK.node=a.id; WALK.a=null; WALK.climb={a:a.id,b:b.id,t:0,dur:lift?3:2.2}; A.k++; return moved; }
     const len=hlen(a.id,b.id); if(len<0.05){ A.k++; WALK.node=b.id; WALK.a=null; continue; }
     if(WALK.a!==a.id||WALK.b!==b.id){ WALK.a=a.id; WALK.b=b.id; WALK.s=0; WALK.len=len; WALK.node=null; }
     WALK.hx=(b.wx-a.wx)/len; WALK.hz=(b.wz-a.wz)/len;
@@ -1424,9 +1533,10 @@ function turnUpdate(){ const P=nav.path;
   const d=m.cum-TURN.prog; tcDist.textContent=WALK.climb&&m.kind==='v'?'現在':(d<2?'現在':(d<20?Math.round(d):Math.round(d/5)*5)+' 公尺後');
   if(TURN.cur!==m){ TURN.cur=m; const inf=turnInfo(m,P); tcText.textContent=inf.t; tcIcon.innerHTML='<path d="'+TC_ICON[inf.ic]+'"/>';
     /* 小視窗相機：站在路口前方高處，看向要轉過去的方向 */
-    const nd=P[m.i], din=m.din||{x:0,z:-1}, dout=m.kind==='t'?(m.dout||din):din, back=m.kind==='end'?10:9;
-    insetCam.position.set(nd.wx-din.x*back, nd.wy+(m.kind==='v'?5:6), nd.wz-din.z*back);
-    insetCam.lookAt(nd.wx+dout.x*4, nd.wy+0.6, nd.wz+dout.z*4); } }
+    /* 小視窗：從路口後上方約 45° 往下看，不會被旁邊的樓梯間、教室擋住 */
+    const nd=P[m.i], din=m.din||{x:0,z:-1}, dout=m.kind==='t'?(m.dout||din):din, back=11;
+    insetCam.position.set(nd.wx-din.x*back, nd.wy+14, nd.wz-din.z*back);
+    insetCam.lookAt(nd.wx+dout.x*5, nd.wy, nd.wz+dout.z*5); } }
 function turnRender(){ if(turnCard.hidden) return; const r=tcWin.getBoundingClientRect(), c=canvas.getBoundingClientRect(), w=r.width, h=r.height; if(w<20||h<20) return;
   const x=r.left-c.left, y=c.height-(r.top-c.top)-h;
   renderer.setScissorTest(true); renderer.setScissor(x,y,w,h); renderer.setViewport(x,y,w,h);
@@ -1466,7 +1576,7 @@ function walkTick(dt0){
   if(going&&!WALK.climb&&pts.size===0){ const want=Math.atan2(-WALK.hx,-WALK.hz); let d=want-goal.yaw; d=Math.atan2(Math.sin(d),Math.cos(d)); goal.yaw+=d*Math.min(1,dt*1.6); }
   /* 上下樓按鈕與位置提示（每 0.2 秒更新一次文字） */
   WALK.hudT-=dt; if(WALK.hudT<=0){ WALK.hudT=0.2;
-    walkGhost(WALK.climb?null:walkInsideCell(L)); turnUpdate();
+    walkGhost(WALK.climb?((L===NN[WALK.climb.a].L?NN[WALK.climb.a].cell:NN[WALK.climb.b].cell)||null):walkInsideCell(L)); turnUpdate();
     const n=walkStairNode(), eu=walkStairEdge(n,1), ed=walkStairEdge(n,-1);
     wUp.hidden=!eu; wDn.hidden=!ed; walkBtns.hidden=!(eu||ed);
     if(eu) wUp.textContent=eu.kind==='lift'?'▲ 電梯上樓':'▲ 上樓'; if(ed) wDn.textContent=ed.kind==='lift'?'▼ 電梯下樓':'▼ 下樓';
