@@ -143,7 +143,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.31 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.32 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -159,7 +159,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.31 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.32 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -188,6 +188,16 @@ const DEFAULT_EVENTS_CSV = '';
 const PUBLIC_URL = '';
 // BOOT：用 Google Apps Script 網頁應用程式發布時，伺服端會把「應用程式網址」和網址參數塞進這裡（見 Code.gs）。
 const BOOT = /*__BOOT__*/null || window.__BOOT__ || null;
+/* ---------- 使用統計（v5.32）：只記「做了什麼、從哪裡來、看哪個地點」，不記任何個人資料 ----------
+   送到 Apps Script（doPost）寫進母檔「使用紀錄」。GitHub 備援站（大活動用）固定每 10 次記 1 次，權重 10。 */
+const LOG_URL=(BOOT&&BOOT.log)||'https://script.google.com/macros/s/AKfycbywHUAVNsVKFqf7Ck7O4MN48qhLobw1CCzRf6f-q6SUQLX6b2KqpUKhGSxVhQkomoClxA/exec';
+const LOG_RATE=(BOOT&&BOOT.logRate>0)?Math.min(1,+BOOT.logRate):0.1;
+const LOG_ON=(!!BOOT||/github\.io$/.test(location.hostname))&&Math.random()<LOG_RATE;   /* 只在正式網址記錄；離線檔、測試頁不記 */
+var LOG_N=0, LOG_SEEN={};
+function logUse(kind,src,place){ try{ if(!LOG_ON||LOG_N>=15) return; const k=kind+'|'+(src||'')+'|'+(place||''); if(LOG_SEEN[k]) return; LOG_SEEN[k]=1; LOG_N++;
+  const body=JSON.stringify({k:kind,s:src||'',p:place||'',m:(window.matchMedia&&matchMedia('(pointer:coarse)').matches)?'手機':'電腦',v:BOOT?'gas':'static',w:Math.round(1/LOG_RATE)});
+  if(navigator.sendBeacon&&navigator.sendBeacon(LOG_URL,new Blob([body],{type:'text/plain'}))) return; fetch(LOG_URL,{method:'POST',mode:'no-cors',body}).catch(()=>{}); }catch(e){} }
+function logName(c){ if(!c) return ''; if(c.type==='hidden') return (c.hcodes&&c.hcodes[0])||'未公開'; return c.name+(c.codes&&c.codes[0]?'（'+c.codes[0]+'）':''); }
 let LATE_PARAMS = null;   // Apps Script：用戶端另外向 google.script.url 取得的網址參數（伺服端沒帶到時的後備）
 const CODE_MODE = (()=>{ let emb=true; try{ emb=window.self!==window.top; }catch(e){} return emb && (!!PUBLIC_URL || /googleusercontent\.com$/.test(location.hostname)); })();
 /* 分享用的短網址（GitHub 轉址頁）。Apps Script 沒把網址傳進來、或被嵌在別的網頁裡時，照樣產生完整連結，不會只剩代碼 */
@@ -401,7 +411,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.31 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.32 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -754,6 +764,7 @@ function stableTok(c){ if(!/^x\d+$/.test(c.token)) return c.token; return cells.
 function shareURL(c){ return linkFor('#r'+stableTok(c)); }
 
 function selectRoom(c,opts){
+  if(!(opts&&opts.fromRoute)) logUse('地點','',logName(c));   /* 路線帶出來的不重複算 */
   if(nav.path&&!(opts&&opts.fromRoute)&&resolveNode(nav.to)!==c.node&&!nav.vias.some(v=>resolveNode(v)===c.node)) hideRoute();   // 看別的地方時收掉舊路線
   selected=c; setFloor(c.outdoor?'all':c.level); setCard(true);
   pinBox.visible=pinGem.visible=true;
@@ -1173,6 +1184,7 @@ function showRoute(){
   const note=skip.length?'無障礙路線：'+skip.map(v=>'「'+nodeLabel(resolveNode(v))+'」').join('、')+'有階梯，輪椅無法進出，已改由坡道（司令台兩側或德馨樓西側）進出。':null;
   const toks=[nav.from].concat(vias,[nav.to]), stops=toks.map(resolveNode);
   if(stops.some(s=>!s)){ routeCard('有地點找不到，請重新選擇。'); return; }
+  logUse('路線',nav.from||'',(()=>{ const n=stops[stops.length-1]; return n&&n.cell?logName(n.cell):(n&&n.name)||nav.to; })());
   let path=[]; for(let i=0;i+1<stops.length;i++){ const p=legPath(stops[i],stops[i+1]); if(!p){ nav.path=null; drawPath(null); routeCard(nav.acc?'無障礙路線到不了「'+nodeLabel(stops[i+1])+'」。本校只有德馨樓有電梯（1F 到 4F），5F、大部分地下室和需要走階梯的地方，輪椅無法到達。':'目前的路徑網走不到「'+nodeLabel(stops[i+1])+'」。'); return; } path=path.concat(i?p.slice(1):p); }
   nav.path=path; const dest=stops[stops.length-1];
   if(dest.cell) selectRoom(dest.cell,{keepHash:true,fromRoute:true});
@@ -1588,7 +1600,7 @@ function walkTick(dt0){
     if(txt!==WALK.hudTxt){ WALK.hudTxt=txt; walkWhere.innerHTML=typeof w==='string'?esc(w):(w.arrive?'<b class="arr">'+esc(w.arrive)+'</b>':esc(w.place))+'<small>'+esc(w.arrive?w.place:(w.near||(WALK.auto&&WALK.auto.play?'自動走中・推搖桿可改手動':'搖桿或方向鍵移動')))+'</small>'; } }
 }
 
-function walkStart(n){ walkInit(); n=n||resolveNode(nav.from)||OUT.G01; if(!n) return;
+function walkStart(n){ logUse('走走看','',''); walkInit(); n=n||resolveNode(nav.from)||OUT.G01; if(!n) return;
   if(!WALK.on){ WALK.saved={tx:goal.tx,tz:goal.tz,dist:goal.dist,yaw:goal.yaw,pitch:goal.pitch,ty0:goal.ty0}; WALK.prevFloor=floorFilter; }
   WALK.on=true; WALK.node=n.id; WALK.a=null; WALK.climb=null; WALK.auto=null; WALK.L=null; WALK.hudTxt=''; WALK.hudT=0; WALK.amt=0;
   /* 一開始面向路線的下一站；沒有路線就面向目前相機看的方向 */
@@ -1607,6 +1619,9 @@ window.__campus.walk={turn:TURN,play:autoPlay,pause:autoPause,start:walkStart,st
 
 window.__campus.applyNotices=applyNotices; window.__campus.pointCard=pointCard; window.__campus.showEvent=showEvent;
 fromLink(); Object.assign(cam,goal); animate();
+setTimeout(()=>{ try{ const QP=LATE_PARAMS||(BOOT&&BOOT.p)||null, q=QP?{get:k=>QP[k]||null}:new URLSearchParams(location.search), H=location.hash||'';   /* 這一次是從哪裡打開的 */
+  const ev=q.get('event')||q.get('e')||(H.match(/^#e-(.+)$/)||[])[1], from=q.get('from'), to=q.get('to')||(H.match(/^#r(.+)$/)||[])[1];
+  logUse('開啟', ev?decodeURIComponent(ev):(from&&!to?from:(to?'link':'direct')), to?decodeURIComponent(to):''); }catch(e){} },2500);
 (async()=>{ let txt=DEFAULT_EVENTS_CSV; if(EVENTS_CSV_URL){ try{ const ctl=new AbortController(), tm=setTimeout(()=>ctl.abort(),7000); const r=await fetch(EVENTS_CSV_URL,{signal:ctl.signal,cache:'no-store'}); clearTimeout(tm); const t=await r.text(); if(r.ok&&t.indexOf('類型')>=0) txt=t; }catch(e){} } applyNotices(txt); })();
 try{ if(window.google&&google.script&&google.script.url) google.script.url.getLocation(function(loc){ const P=(loc&&loc.parameter)||{}, had=BOOT&&BOOT.p&&(BOOT.p.to||BOOT.p.from);
   if(loc&&loc.hash){ fromLink('#'+loc.hash); } else if(!had&&(P.to||P.from)){ LATE_PARAMS=P; fromLink(); } }); }catch(e){}
