@@ -137,13 +137,21 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
   #turnCard{right:8px;width:min(230px,58vw)} #tcIcon{width:34px;height:34px} #tcDist{font-size:17px} #tcText{font-size:13px} .tc-head{padding:6px 10px;gap:8px}
   #joy{width:112px;height:112px;left:16px} #joyKnob{width:48px;height:48px;margin:-24px 0 0 -24px}
   #walkBtns .btn{padding:11px 14px;font-size:15px;min-width:104px} }
+/* 第一次開啟的三步驟提示（v5.33）：底部小卡＋光環，手機不擠版面 */
+#tips{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:420px;margin:0 auto;z-index:60;background:var(--panel,#fff);color:inherit;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.25);padding:12px 14px 10px;font-size:15px;line-height:1.5}
+#tips[hidden]{display:none}#tips .tx{min-height:3em}#tips .ft{display:flex;align-items:center;gap:8px;margin-top:6px}
+#tips .dots{flex:1;display:flex;gap:5px}#tips .dots i{width:7px;height:7px;border-radius:50%;background:#c4ccd0}#tips .dots i.on{background:var(--accent)}
+#tips button{font:inherit;font-size:14px;padding:6px 12px;border-radius:9px;border:1px solid #b9c4c9;background:transparent;color:inherit;cursor:pointer}#tips button.go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#tipRing{position:fixed;z-index:59;border:3px solid var(--accent);border-radius:12px;pointer-events:none;box-shadow:0 0 0 4px rgba(22,103,183,.25);animation:tipP 1.2s ease-in-out infinite}#tipRing[hidden]{display:none}
+@keyframes tipP{50%{box-shadow:0 0 0 10px rgba(22,103,183,.08)}}
+.hint{margin:6px 0;padding:6px 10px;border-radius:9px;background:rgba(22,103,183,.1);font-size:14px}
 </style>
 
 <canvas id="stage" aria-label="中正國中 3D 校園模型"></canvas>
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.32 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.38 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -159,7 +167,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.32 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.38 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -411,7 +419,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.32 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.38 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -456,6 +464,7 @@ BUILDINGS.forEach((b,bi)=>{
       c.flat=/平台|露台|無屋頂|穿堂|川堂|^通道$|^走道|^走廊/.test(c.name);   /* 走道、走廊比照穿堂：只畫一片地板，看得穿 */
       c.y0=(L===0?-FH:(L-1)*FH)+0.1+LIFT; c.h=c.flat?0.3:FH-0.35;
       c.walkway=c.flat&&/^走道|^走廊/.test(c.name);   /* v5.28：走道、走廊格的樓板和外廊同一個高度、同一個厚度（頂面 = 樓層高度＋0.14） */
+      if(b.name==='行政大樓'&&b.part==='中央廊'&&L===1){ c.y0=0.03; c.h=0.15; c.ground=true; }   /* 中央川堂和草地一樣平，比行政大樓、力行樓 1F 低（115.10.17 現場確認） */
       if(c.walkway){ c.y0=(L===0?-FH:(L-1)*FH)+LIFT-0.1; c.h=0.24; if(L===1){ c.y0=0; c.h=LIFT+0.14; } }   /* 1F 和外廊一樣一路做到地面 */
       const pt=b.at(c.lx); c.wx=pt[0]; c.wz=pt[1]; c.phi=pt[2];
       if(c.type==='hidden'){ c.hcodes=c.codes; c.codes=[]; }   // 門牌只留給「活動限時公開」用，不顯示、不能搜尋
@@ -764,7 +773,8 @@ function stableTok(c){ if(!/^x\d+$/.test(c.token)) return c.token; return cells.
 function shareURL(c){ return linkFor('#r'+stableTok(c)); }
 
 function selectRoom(c,opts){
-  if(!(opts&&opts.fromRoute)) logUse('地點','',logName(c));   /* 路線帶出來的不重複算 */
+  if(PICK_START&&c.node){ pickStart(false); nav.from=stableTok(c); markStart(); if(nav.to&&resolveNode(nav.to)!==c.node){ showRoute(); return; } opts=Object.assign({},opts,{startHint:true}); }
+  if(!(opts&&opts.fromRoute)){ logUse('地點','',logName(c)); rememberCell(c); }   /* 路線帶出來的不重複算 */
   if(nav.path&&!(opts&&opts.fromRoute)&&resolveNode(nav.to)!==c.node&&!nav.vias.some(v=>resolveNode(v)===c.node)) hideRoute();   // 看別的地方時收掉舊路線
   selected=c; setFloor(c.outdoor?'all':c.level); setCard(true);
   pinBox.visible=pinGem.visible=true;
@@ -775,13 +785,15 @@ function selectRoom(c,opts){
   card.innerHTML=(c.outdoor?'<div class="sub">校園戶外</div>':'<div class="sub">'+esc(c.b.name)+(c.b.part?'（'+c.b.part+'）':'')+'・'+FLOORNAME(c.level)+'　<span class="no">'+esc(codeText(c))+'</span></div>')+
     '<h2>'+esc(displayName(c))+'</h2>'+
     '<div class="row"><span class="chip" style="border-color:'+TYPES[c.type].c+'">'+TYPES[c.type].label+'</span></div>'+
-    '<div class="row"><button class="btn" id="bGo">帶我去</button><button class="btn ghost" id="bVia">加為途經點</button></div>'+
+    ((opts&&opts.startHint)?'<p class="hint">已設為起點。在上方搜尋要去的地方，按「帶我去」。</p>':'')+
+    '<div class="row"><button class="btn" id="bGo">帶我去</button>'+(c.node?'<button class="btn ghost" id="bFrom">'+(resolveNode(nav.from)===c.node?'✓ 目前起點':'從這裡出發')+'</button>':'')+'<button class="btn ghost" id="bVia">加為途經點</button></div>'+
     '<div class="row"><button class="btn ghost" id="bCopy">複製這間的連結</button><button class="btn ghost" id="bQR">QR Code</button>'+(c.outdoor?'':'<button class="btn ghost" id="bBld">看整棟</button>')+'<button class="btn ghost" id="bHome">回全校</button>'+(c.outdoor?gmapBtn:'')+'</div>'+
     '<input id="linkOut" readonly hidden aria-label="分享連結">';
   card.querySelector('#bCopy').addEventListener('click',()=>copyLink(c));
   card.querySelector('#bQR').addEventListener('click',()=>showQR(shareURL(c),displayName(c)));
   card.querySelector('#bGo').addEventListener('click',()=>navTo(c));
   card.querySelector('#bVia').addEventListener('click',()=>navVia(c));
+  { const bf=card.querySelector('#bFrom'); if(bf) bf.addEventListener('click',()=>{ nav.from=stableTok(c); markStart(); if(nav.to&&resolveNode(nav.to)!==c.node){ showRoute(); return; } selectRoom(c,{keepHash:true,startHint:true}); }); }   /* 教室到教室（v5.33） */
   if(!c.outdoor) card.querySelector('#bBld').addEventListener('click',()=>selectBuilding(c.b));
   card.querySelector('#bHome').addEventListener('click',()=>goHome());
   if(!(opts&&opts.keepHash)) try{ history.replaceState(null,'','#r'+c.token); }catch(e){}
@@ -824,14 +836,15 @@ function quickChips(){ return QUICK.map(n=>{const c=cells.find(x=>x.name===n); r
 function goHome(keepHash){
   if(!keepHash) hideRoute();   // 回首頁就收掉黃線
   selected=null; pinBox.visible=pinGem.visible=false; setFloor('all'); Object.assign(goal,HOME,{ty0:0,dist:homeDist()});
-  card.innerHTML='<h2>找教室，看位置</h2>'+
+  card.innerHTML='<h2 id="homeCard">找教室，看位置</h2>'+
     '<p class="long">在上方搜尋處室或場地名稱。也可以直接點校舍，或用右側樓層鈕切開樓層看每間教室。</p>'+
     '<div class="sub">常用場地</div><div class="row">'+quickChips()+'</div>'+
     '<div id="evRow">'+evRowHTML()+'</div>'+
     navHomeRow()+
     '<div class="row">'+gmapBtn+'<span class="sub">怎麼到學校</span></div>'+
     '<div class="legend">'+['g9','g8','g7','special','office','other'].map(k=>'<span><i style="background:'+TYPES[k].c+'"></i>'+TYPES[k].label+'</span>').join('')+'</div>'+
-    '<p class="long">拖曳旋轉・滾輪或雙指縮放・右鍵或雙指拖曳平移</p>';
+    '<p class="long">拖曳旋轉・滾輪或雙指縮放・右鍵或雙指拖曳平移　<button class="chip" id="bTips">操作說明</button></p>';
+  { const bt=card.querySelector('#bTips'); if(bt) bt.addEventListener('click',()=>showTips()); }
   card.querySelectorAll('[data-i]').forEach(el=>el.addEventListener('click',()=>selectRoom(cells[+el.dataset.i])));
   bindNav(card);
   if(keepHash!==true) try{ history.replaceState(null,'',location.href.split('#')[0]); }catch(e){}
@@ -850,11 +863,29 @@ function pick(x,y){
 /* ---------- 搜尋 ---------- */
 const q=document.getElementById('q'), resEl=document.getElementById('results');
 function hideResults(){ resEl.hidden=true; }
+/* 最近查過（存在這支手機，最多 6 個；未公開的格子不記） */
+function recentCells(){ let a=[]; try{ a=JSON.parse(localStorage.getItem('campus3d.recent')||'[]'); }catch(e){} return a.map(t=>cells.find(x=>x.findable&&(x.token===t||x.name===t))).filter(Boolean); }
+function rememberCell(c){ if(!c||!c.findable) return; try{ const t=stableTok(c); let a=JSON.parse(localStorage.getItem('campus3d.recent')||'[]').filter(x=>x!==t); a.unshift(t); localStorage.setItem('campus3d.recent',JSON.stringify(a.slice(0,6))); }catch(e){} }
+/* 三步驟提示（v5.33；v5.34 改成函式，首頁「操作說明」可以再看） */
+function showTips(){ if(document.getElementById('tips')) return;
+  const S=[['#q','🔍 在上方<b>搜尋</b>教室或地點，例如「圖書室」「科技中心」。'],[null,'📍 點選地點後按<b>「帶我去」</b>就會畫出路線；按<b>「從這裡出發」</b>可以換起點，教室到教室也行。'],['#walkBtn','🚶 按<b>「走走看」</b>，用小人跟著路線在校園裡走，轉彎會提醒你。']];
+  const box=document.createElement('div'); box.id='tips'; box.setAttribute('role','dialog'); box.setAttribute('aria-label','使用提示'); const ring=document.createElement('div'); ring.id='tipRing'; ring.hidden=true;
+  document.body.appendChild(ring); document.body.appendChild(box); let i=0;
+  const place=()=>{ const sel=S[i][0], el=sel&&document.querySelector(sel); if(!el||!el.offsetParent){ ring.hidden=true; return; } const r=el.getBoundingClientRect(); ring.hidden=false; Object.assign(ring.style,{left:(r.left-5)+'px',top:(r.top-5)+'px',width:(r.width+10)+'px',height:(r.height+10)+'px'}); };
+  const done=()=>{ box.remove(); ring.remove(); try{ localStorage.setItem('campus3d.tips','1'); }catch(e){} window.removeEventListener('resize',place); };
+  const show=()=>{ box.innerHTML='<button id="tipX" aria-label="關閉提示" style="float:right;border:0;padding:0 4px;font-size:18px;line-height:1">✕</button><div class="tx">'+S[i][1]+'</div><div class="ft"><div class="dots">'+S.map((_,k)=>'<i class="'+(k===i?'on':'')+'"></i>').join('')+'</div><button id="tipSkip">略過提示</button><button class="go" id="tipNext">'+(i<S.length-1?'下一步':'開始使用')+'</button></div>';
+    box.querySelector('#tipX').onclick=done; box.querySelector('#tipSkip').onclick=done; box.querySelector('#tipNext').onclick=()=>{ if(++i>=S.length) done(); else show(); }; place(); };
+  window.addEventListener('resize',place); show(); }
+
 function search(){
   { const raw=q.value.trim(), mc=raw.match(/(nav~\S+|go~\S+|ev~\S+)\s*$/);   // 貼上分享代碼
     if(mc){ const code=mc[1]; q.value=''; hideResults(); q.blur(); fromLink(code.indexOf('go~')===0?'#r'+code.slice(3):code.indexOf('ev~')===0?'#e-'+code.slice(3):'#'+code); return; } }
   const s=q.value.trim().toLowerCase(); let h='';
-  if(!s){ h='<div class="hd">常用場地</div><div class="chips">'+quickChips()+'</div>'; }
+  if(!s){   /* 空白時：顯示「最近查過」；首頁卡片已經有常用場地，展開時就不重複列（v5.34） */
+    const homeOpen=!card.hidden&&cardToggle.getAttribute('aria-expanded')!=='false'&&!!card.querySelector('#homeCard'), rc=recentCells();
+    if(rc.length) h='<div class="hd">最近查過</div><div class="chips">'+rc.map(c=>'<button class="chip" data-i="'+c.idx+'">'+esc(displayName(c))+'</button>').join('')+'</div>';
+    if(!homeOpen) h+='<div class="hd">常用場地</div><div class="chips">'+quickChips()+'</div>';
+    if(!h){ hideResults(); return; } }
   else{
     const sc=c=>{ const n=c.name.toLowerCase(); let v=0;
       if(c.codes.some(k=>k.toLowerCase()===s))v=100; else if(n===s)v=95; else if(n.startsWith(s))v=80;
@@ -967,7 +998,8 @@ const endN=(b,L,w)=>{ const a=b&&b.nodes[L]; return a? a.find(n=>w==='m'?n.mid:n
 const corrLevels={}, JLINKS=[];
 { const slabG=new THREE.BoxGeometry(1,1,1), slabM=new THREE.MeshLambertMaterial({color:0xcfd4d2}), wallM=new THREE.MeshLambertMaterial({color:0xaeb6b4});
   const items={}, m4=new THREE.Matrix4(), q=new THREE.Quaternion(), ps=new THREE.Vector3(), sc=new THREE.Vector3(), UP=new THREE.Vector3(0,1,0);
-  const ATTACH=[]; { const cw=findB('行政大樓中央廊'); if(cw) cw.levels.forEach(L=>{ [0,cw.len].forEach(t=>{ const p=cw.at(t); ATTACH.push([p[0],p[1],L,cw.d/2+2.5]); }); }); }
+  const CW=findB('行政大樓中央廊');   /* v5.38：中央廊接行政大樓、力行樓的開口只留中央廊本身的寬度（原本以端點為圓心挖 6.5 公尺，兩側各多出一段沒有護欄） */
+  const atCW=(P,L)=>{ if(!CW||!CW.levels.includes(L)) return false; const l=CW.loc(P); return l.t>-4&&l.t<CW.len+4&&Math.abs(l.o)<CW.d/2-0.05; };
   const push=(L,kind,x,y,z,ang,lx,ly,lz)=>{ const k=L+':'+kind; (items[k]=items[k]||[]).push([x,y,z,ang,lx,ly,lz]); };
   /* v5.24：每棟沿長邊取樣，方便判斷「某一點在不在某棟的教室裡、走廊上」 */
   BUILDINGS.forEach(b=>{ const key=b.name+(b.part||''), tgt=CORRIDOR_TOWARD[key]||GATE_PT; b.smp=[];
@@ -1010,8 +1042,8 @@ const corrLevels={}, JLINKS=[];
         const len=Math.hypot(c[0]-a[0],c[1]-a[1])+0.25, ang=-Math.atan2(c[1]-a[1],c[0]-a[0]);
         if(L===1) push(L,'s',(a[0]+c[0])/2,(base+0.14)/2,(a[1]+c[1])/2,ang,len,base+0.14,w1-w0); else push(L,'s',(a[0]+c[0])/2,base+0.02,(a[1]+c[1])/2,ang,len,0.24,w1-w0);
         if(L<2) continue;
-        const n=4; for(let k=0;k<n;k++){ const ta=t0+(t1-t0)*k/n, tb=t0+(t1-t0)*(k+1)/n, tm=(ta+tb)/2, pm=b.pt(tm,w1-0.08), qo=b.pt(tm,w1+0.45);
-          if(ATTACH.some(q=>q[2]===L&&Math.hypot(q[0]-pm[0],q[1]-pm[1])<q[3])||covered(qo,L,b)) continue;
+        const n=8; for(let k=0;k<n;k++){ const ta=t0+(t1-t0)*k/n, tb=t0+(t1-t0)*(k+1)/n, tm=(ta+tb)/2, pm=b.pt(tm,w1-0.08), qo=b.pt(tm,w1+0.45);
+          if(atCW(pm,L)||covered(qo,L,b)) continue;
           const pa=b.pt(ta,w1-0.08), pb=b.pt(tb,w1-0.08);
           push(L,'w',pm[0],base+0.62,pm[1],-Math.atan2(pb[1]-pa[1],pb[0]-pa[0]),Math.hypot(pb[0]-pa[0],pb[1]-pa[1])+0.06,1.0,0.16); } } }); });
   /* 轉角樓板＋露在外面那幾邊的矮牆；1F 一路做到地面 */
@@ -1031,14 +1063,17 @@ const corrLevels={}, JLINKS=[];
           if((PLATES[L]||[]).some(o=>o!==pl&&inPoly([sx+nx*0.45,sz+nz*0.45],o.poly))) continue;
           push(L,'w',sx-nx*0.08,base+0.62,sz-nz*0.08,-Math.atan2(uz,ux),sl+0.06,1.0,0.16); } }); }); });
   /* v5.25：校舍端點的走廊／走道格（例：仁愛樓西端、信義樓東端）露在外面的那幾邊加矮牆；接橋、接別棟的地方留開口 */
-  cells.forEach(c=>{ const b=c.b, L=c.level; if(L<2||!c.flat||!/走廊|走道/.test(c.name)||b.key==='行政大樓中央廊') return; const base=(L-1)*FH+LIFT;
+  /* v5.37：2F 以上可以走的「平台／露台」也一樣加護欄（例：行政大樓中央廊 3F 平台、德馨樓 4F 平台、至善樓 4F 平台） */
+  cells.forEach(c=>{ const b=c.b, L=c.level; if(L<2||!c.flat||!/走廊|走道|平台|露台/.test(c.name)) return;
+    const noCorr=b.key==='行政大樓中央廊', fo=noCorr?b.d/2:W1(b), wy=c.y0+c.h+0.48;   /* 中央廊沒有外廊：前面也要護欄；護欄從樓板頂面算起 */
     const ta=c.lx-c.wm/2, tb=c.lx+c.wm/2, edges=[[[ta,-b.d/2],[tb,-b.d/2],[0,-1]]];
-    if(ta<0.2) edges.push([[0,-b.d/2],[0,W1(b)],[-1,0]]); if(tb>b.len-0.2) edges.push([[b.len,-b.d/2],[b.len,W1(b)],[1,0]]);   /* 端牆一路接到外廊外緣，和外廊矮牆接起來 */
+    if(noCorr) edges.push([[ta,b.d/2],[tb,b.d/2],[0,1]]);
+    if(ta<0.2) edges.push([[0,-b.d/2],[0,fo],[-1,0]]); if(tb>b.len-0.2) edges.push([[b.len,-b.d/2],[b.len,fo],[1,0]]);   /* 端牆一路接到外廊外緣，和外廊矮牆接起來 */
     edges.forEach(([u,v,dir])=>{ const n=Math.max(1,Math.round(Math.hypot(v[0]-u[0],v[1]-u[1])/0.8));
       for(let k=0;k<n;k++){ const f0=k/n, f1=(k+1)/n, P0=b.pt(u[0]+(v[0]-u[0])*f0,u[1]+(v[1]-u[1])*f0), P1=b.pt(u[0]+(v[0]-u[0])*f1,u[1]+(v[1]-u[1])*f1);
         const tm=u[0]+(v[0]-u[0])*(f0+f1)/2, om=u[1]+(v[1]-u[1])*(f0+f1)/2, qo=b.pt(tm+dir[0]*0.45,om+dir[1]*0.45), pm=b.pt(tm-dir[0]*0.08,om-dir[1]*0.08);
         if(covered(qo,L,b)) continue;
-        push(L,'w',pm[0],base+0.62,pm[1],-Math.atan2(P1[1]-P0[1],P1[0]-P0[0]),Math.hypot(P1[0]-P0[0],P1[1]-P0[1])+0.06,1.0,0.16); } }); });
+        push(L,'w',pm[0],wy,pm[1],-Math.atan2(P1[1]-P0[1],P1[0]-P0[0]),Math.hypot(P1[0]-P0[0],P1[1]-P0[1])+0.06,1.0,0.16); } }); });
   /* v5.25：行政大樓接仁愛樓、接信義樓的最高層（3F）連通走道有屋頂 */
   const ROOFM=new THREE.MeshLambertMaterial({color:0xb8935a});
   Object.keys(PLATES).forEach(Ls=>{ const L=+Ls; PLATES[L].forEach(pl=>{ const adm=[pl.A,pl.B].find(x=>x.key==='行政大樓'); if(!adm||L<2||L!==adm.top) return;
@@ -1056,8 +1091,15 @@ corrVis(typeof floorFilter==='undefined'?'all':floorFilter);
 JLINKS.forEach(([a,b])=>linkN(a,b,'walk'));   /* 轉角：接到上面選好的接口（走廊末端或橫穿走道） */
 for(let L=0;L<=5;L++){ const sN=endN(findB('至真樓南段'),L,'s'), arr=(findB('至真樓北段').nodes[L]||[]).slice(); if(!sN||!arr.length) continue;   // L 型轉角：南段走廊接到北段走廊上最近的那一點，不繞到北段東端
   arr.sort((p,q)=>Math.hypot(p.x-sN.x,p.z-sN.z)-Math.hypot(q.x-sN.x,q.z-sN.z)); linkN(arr[0],sN,'walk'); }
-for(let L=1;L<=3;L++) linkN(endN(findB('行政大樓'),L,'m'),endN(findB('行政大樓中央廊'),L,'s'),'walk');
-linkN(endN(findB('行政大樓中央廊'),1,'e'),endN(findB('力行樓'),1,'m'),'walk');
+for(let L=2;L<=3;L++) linkN(endN(findB('行政大樓'),L,'m'),endN(findB('行政大樓中央廊'),L,'s'),'walk');
+/* 1F 中央川堂在地面高度：進出行政大樓、力行樓都有台階（step，沒有坡道）→ 無障礙路線不會走這裡 */
+(findB('行政大樓中央廊').nodes[1]||[]).forEach(n=>{ n.y=0.6; n.ground=true; });
+linkN(endN(findB('行政大樓'),1,'m'),endN(findB('行政大樓中央廊'),1,'s'),'step',3);
+linkN(endN(findB('行政大樓中央廊'),1,'e'),endN(findB('力行樓'),1,'m'),'step',3);
+/* v5.38：3F 平台北端接到力行樓 3F 走廊（現場可以一路走到力行樓）：接到力行樓走廊上最近的那一點 */
+{ const e3=endN(findB('行政大樓中央廊'),3,'e'), arr=(findB('力行樓').nodes[3]||[]).slice().sort((p,q)=>Math.hypot(p.x-e3.x,p.z-e3.z)-Math.hypot(q.x-e3.x,q.z-e3.z)); if(e3&&arr.length) linkN(e3,arr[0],'walk'); }
+/* v5.38：中央廊 3F 是露天平台（無屋頂、大樓間風大、常有水漥）：無障礙路線不走；雨天路線當戶外算；路線說明會提醒 */
+{ const pn=(findB('行政大樓中央廊').nodes[3]||[]); pn.forEach(n=>{ n.open=true; EE[n.id].forEach(e=>{ if(e.kind==='walk'||e.kind==='step'){ e.noAcc=1; e.o=Math.max(e.o,e.d); EE[e.to].forEach(g=>{ if(g.to===n.id){ g.noAcc=1; g.o=Math.max(g.o,g.d); } }); } }); }); }
 NN.filter(n=>n.L===0&&n.cell&&n.cell.type==='stair'&&!n.upOK).forEach(n=>{ let best=null,bd=22; NN.forEach(u=>{ if(u.L===1&&u.end){ const d=Math.hypot(u.x-n.x,u.z-n.z); if(d<bd){bd=d;best=u;} } }); if(best) linkN(n,best,'stair',12); });
 // 戶外：有代號的是可以當起點的定位點（校門、停車場、入口），其餘是步道轉折點
 const OUT={};
@@ -1079,6 +1121,8 @@ linkN(OUT.w12,endN(findB('至美樓南段'),1,'e'),'step',3);
   const door=ns.filter(n=>n.cell&&n.cell.name.indexOf(a[1])>=0).sort((p,q)=>Math.hypot(p.x-OUT[a[2]].x,p.z-OUT[a[2]].z)-Math.hypot(q.x-OUT[a[2]].x,q.z-OUT[a[2]].z))[0];
   if(door){ linkN(OUT[a[2]],door,'step',6); [OUT[a[2]].id,door.id].forEach(i=>EE[i].forEach(e=>{ if(e.kind==='step'&&(e.to===door.id||e.to===OUT[a[2]].id)) e.ramp=1; })); OUT[a[2]].ramp=1; } });
 [['G09','司令台兩側的無障礙坡道'],['G14','後門旁、德馨樓西側的坡道']].forEach(a=>{ const o=OUT[a[0]]; o.rampIn=a[1]; EE[o.id].forEach(e=>{ if(e.kind==='step'){ e.ramp=1; EE[e.to].forEach(g=>{ if(g.to===o.id) g.ramp=1; }); } }); });   // 無障礙：進得了 1F 的坡道只有司令台兩側、後門旁德馨樓西側；其餘入口有階梯
+/* G14 德馨樓西側坡道：平常不是主要出入口（要從後門那一側過去），路線加 15 公尺的成本，只有從後門、側門（風雨操場側）附近出發才會選它（115.10.17） */
+EE[OUT.G14.id].forEach(e=>{ if(e.kind==='step'){ e.d+=15; EE[e.to].forEach(g=>{ if(g.to===OUT.G14.id&&g.kind==='step') g.d+=15; }); } });
 const outList=Object.keys(OUT).map(k=>OUT[k]);
 cells.filter(c=>c.outdoor).forEach(c=>{ let best=null,bd=1e9; outList.forEach(o=>{const d=Math.hypot(o.x-c.wx,o.z-c.wz); if(d<bd){bd=d;best=o;}});
   if(bd<1.5){ c.node=best; if(!best.name) best.name=c.name; } else { c.node=addNode({x:c.wx,z:c.wz,y:0.6,L:'G',b:null,name:c.name}); linkN(c.node,best,'walk'); } });
@@ -1098,18 +1142,21 @@ outList.forEach(o=>{ if(o.code) CODE[o.code]=o; });
 const START_OPTS=outList.filter(o=>o.code);
 
 /* 已取消的樓梯代號：T06 原本以為是樓梯，其實是延伸的川堂。已印出的 QR 牌仍可用，改指到那一格 */
-const RETIRED_CODES={T06:'中央川堂後半及樓梯'};
-function resolveNode(tok){ if(!tok) return null; if(CODE[tok]) return CODE[tok]; if(RETIRED_CODES[tok]) tok=RETIRED_CODES[tok];
+const RETIRED_CODES={T06:['力行樓',1,/中央川堂/]};   /* T06 已取消：那一格是力行樓 1F 的「中央川堂後半及樓梯」（和 1F 同高，不是地面），舊 QR 牌改指到那一格；名稱只要含「中央川堂」都找得到 */
+function resolveNode(tok){ if(!tok) return null; if(CODE[tok]) return CODE[tok]; if(RETIRED_CODES[tok]){ const r=RETIRED_CODES[tok], rc=cells.find(x=>x.b.name===r[0]&&x.level===r[1]&&r[2].test(x.name)); if(rc&&rc.node) return rc.node; }
   const c=cells.find(x=>x.token===tok)||cells.find(x=>x.codes.includes(tok)||x.name===tok); return c&&c.node? c.node : null; }
 function nodeLabel(n){ if(!n) return ''; if(n.code&&n.cell) return n.name; if(n.cell) return displayName(n.cell); return (n.name||'').replace(/^入口：/,'')+(n.name&&/^入口/.test(n.name)?' 入口':''); }
 function dijkstra(src,ocOverride){ const ACC=(typeof nav!=='undefined'&&nav.acc); const OC=ocOverride||((typeof nav!=='undefined'&&nav.rain)?RAIN_COST:OUTDOOR_COST); const dist=new Array(NN.length).fill(Infinity), prev=new Array(NN.length).fill(-1), done=new Array(NN.length).fill(false); dist[src]=0;
   for(;;){ let u=-1,best=Infinity; for(let i=0;i<NN.length;i++) if(!done[i]&&dist[i]<best){best=dist[i];u=i;} if(u<0) break; done[u]=true;
-    for(const e of EE[u]){ if(e.x) continue; if(ACC&&(e.kind==='stair'||(e.kind==='step'&&!e.ramp))) continue; const nd=dist[u]+e.d+e.o*(OC-1)+(e.kind==='lift'&&!ACC?6:0);   /* 一般人優先走樓梯，不會爬到一半又改搭電梯；無障礙模式不受影響 */ if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u;} } }
+    for(const e of EE[u]){ if(e.x) continue; if(ACC&&(e.kind==='stair'||e.noAcc||(e.kind==='step'&&!e.ramp))) continue; const nd=dist[u]+e.d+e.o*(OC-1)+(e.kind==='lift'&&!ACC?6:0);   /* 一般人優先走樓梯，不會爬到一半又改搭電梯；無障礙模式不受影響 */ if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u;} } }
   return {dist,prev}; }
 /* 兩端都在戶外（例如校門到某個入口）：直接走戶外，不必繞進校舍 */
 function pathBetween(a,b){ const r=dijkstra(a.id,(a.L==='G'&&b.L==='G'&&!nav.rain)?1:0); if(!isFinite(r.dist[b.id])) return null; const p=[]; for(let u=b.id;u>=0;u=r.prev[u]) p.push(NN[u]); return p.reverse(); }
 
 const nav={from:'G01',vias:[],to:null,path:null};
+var PICK_START=false;   /* 起點選單選了「其他地點…」：下一個點選的地點當起點（v5.33） */
+const Q_PH=document.getElementById('q').placeholder;
+function pickStart(on){ PICK_START=on; const qq=document.getElementById('q'); qq.placeholder=on?'搜尋起點：教室或地點…':Q_PH; if(on){ qq.value=''; qq.focus(); } }
 // 黃線：一次建好一池線段，之後只切換顯示（不在迴圈裡新增物件）
 const SEG_MAX=420, segMat=new THREE.MeshBasicMaterial({color:0xffd21f,depthTest:false,transparent:true,opacity:0.95}), segGeo=new THREE.BoxGeometry(1,0.8,1.9);
 const segs=[]; for(let i=0;i<SEG_MAX;i++){ const m=new THREE.Mesh(segGeo,segMat); m.visible=false; m.renderOrder=20; scene.add(m); segs.push(m); }
@@ -1138,10 +1185,13 @@ function describe(path,stops){
     if(a.L!==b.L&&a.b&&b.b&&a.b.name===b.b.name&&a.L!=='G'&&b.L!=='G'){ floors++; const up=b.L>a.L;
       const lift=a.cell&&a.cell.name==='電梯'; let j=i+1; while(j+1<path.length&&path[j+1].b&&path[j].b&&path[j+1].L!==path[j].L&&path[j+1].b.name===a.b.name){ j++; floors++; }
       push('在'+a.b.name+(lift?'搭電梯':'走樓梯')+(up?'上':'下')+'到 '+FLOORNAME(path[j].L)); i=j-1; continue; }
-    meters+=Math.hypot(a.x-b.x,a.z-b.z); if(a.L==='G'&&b.L==='G') wet+=Math.hypot(a.x-b.x,a.z-b.z);
+    meters+=Math.hypot(a.x-b.x,a.z-b.z); if((a.L==='G'&&b.L==='G')||a.open||b.open) wet+=Math.hypot(a.x-b.x,a.z-b.z);
+    if(!a.open&&b.open) push('走上行政大樓中央的 3F 露天平台（無屋頂，雨天可能有水漥）');
     if(!a.b&&b.b) push((a.ramp?'走坡道往下進入':(nav.acc&&a.rampIn?'由'+a.rampIn+'進入':'進入'))+b.b.name+' '+FLOORNAME(b.L));
     else if(a.b&&!b.b) push(b.ramp?'走坡道往上離開'+a.b.name+' B1':'走出'+a.b.name);
-    else if(a.b&&b.b&&a.b.name!==b.b.name) push('經連通走道到'+b.b.name);
+    else if(a.b&&b.b&&!a.ground&&b.ground) push('走下台階到中央川堂');
+    else if(a.b&&b.b&&a.ground&&!b.ground) push('走上台階進入'+b.b.name+' 1F');
+    else if(a.b&&b.b&&a.b.name!==b.b.name) push((a.open?'沿平台直走進入':'經連通走道到')+b.b.name+(a.open?' '+FLOORNAME(b.L):''));
     if(nextStop<stops.length-1&&b===stops[nextStop]){ push('經過「'+nodeLabel(b)+'」'); nextStop++; }
   }
   push('抵達「'+nodeLabel(stops[stops.length-1])+'」');
@@ -1150,11 +1200,11 @@ function describe(path,stops){
 function startSelectHTML(){ const cur=resolveNode(nav.from);
   let h='<select id="navFrom" aria-label="導航起點">'+START_OPTS.map(o=>'<option value="'+o.code+'"'+(o===cur?' selected':'')+'>'+esc(o.name)+'</option>').join('');
   if(cur&&START_OPTS.indexOf(cur)<0) h+='<option value="'+esc(nav.from)+'" selected>'+esc(nodeLabel(cur)||nav.from)+'</option>';
-  return h+'</select>'; }
+  return h+'<option value="__pick">其他地點…（用搜尋選）</option></select>'; }
 function navHomeRow(){ return '<div class="sub">導航起點（你現在的位置）</div><div class="row">'+startSelectHTML()+'</div>'+
   '<div class="row"><button class="chip" data-fac="wc">最近的廁所</button><button class="chip" data-fac="lift">電梯</button></div>'; }
 function bindNav(root){
-  const sel=root.querySelector('#navFrom'); if(sel) sel.addEventListener('change',()=>{ nav.from=sel.value; markStart(); if(nav.to) showRoute(); });
+  const sel=root.querySelector('#navFrom'); if(sel) sel.addEventListener('change',()=>{ if(sel.value==='__pick'){ sel.value=nav.from||'G01'; pickStart(true); return; } nav.from=sel.value; markStart(); if(nav.to) showRoute(); });
   root.querySelectorAll('[data-fac]').forEach(el=>el.addEventListener('click',()=>nearest(el.dataset.fac)));
 }
 function nearest(kind){ const s=resolveNode(nav.from); if(!s) return; const r=dijkstra(s.id); let best=null,bd=Infinity;
@@ -1163,7 +1213,7 @@ function nearest(kind){ const s=resolveNode(nav.from); if(!s) return; const r=di
 function navTo(c){ const t=stableTok(c); nav.event=null; nav.to=t; nav.vias=nav.vias.filter(v=>v!==t); showRoute(); }
 function navVia(c){ const t=stableTok(c); if(nav.vias.indexOf(t)<0&&nav.vias.length<6) nav.vias.push(t); if(nav.to&&nav.to!==t) showRoute(); else { nav.to=nav.to||null; routeCard(null); } }
 function hideRoute(){ nav.event=null; nav.to=null; nav.vias=[]; nav.path=null; drawPath(null); viaDots.forEach(d=>d.visible=false); viaLabs.forEach(l=>l.hidden=true); }
-function clearRoute(){ nav.event=null; nav.to=null; nav.vias=[]; nav.path=null; drawPath(null); viaDots.forEach(d=>d.visible=false); viaLabs.forEach(l=>l.hidden=true); goHome(); }
+function clearRoute(){ pickStart(false); nav.event=null; nav.to=null; nav.vias=[]; nav.path=null; drawPath(null); viaDots.forEach(d=>d.visible=false); viaLabs.forEach(l=>l.hidden=true); goHome(); }
 function routeLink(){ return linkFor('#nav~'+[nav.from,nav.to].concat(nav.vias).map(encodeURIComponent).join('~')); }
 /* 指定樓梯：途經點是樓梯（T 代號）時，上下樓一定要用這一座，不會走到 1F 又換別座爬 */
 const isStair=n=>!!(n&&n.cell&&n.cell.type==='stair'&&typeof n.L==='number');
@@ -1214,13 +1264,14 @@ function routeCard(msg,info,stops){ const evTop=nav.event?evBoxHTML(nav.event,tr
       let o=null,od=Infinity; cells.forEach(c=>{ if(isWC(c)&&c.node&&c!==w&&c.level===w.level&&r.dist[c.node.id]>3&&r.dist[c.node.id]<od){od=r.dist[c.node.id];o=c;} });
       const alt=[]; if(fl.length) alt.push('同一座樓梯的 '+fl.join('、')); if(o) alt.push(o.b.name===w.b.name?'同樓層另一端樓梯口的廁所':'同樓層'+o.b.name+'的廁所');
       h+='<p>本校每間廁所供單一性別使用，請依門口標示。'+(alt.length?'另一性別的廁所通常在'+esc(alt.join('，或'))+'。':'')+'</p>'; } }
-  h+='<div class="sub">起點</div><div class="row">'+startSelectHTML()+'</div>';
+  h+='<div class="sub">起點</div><div class="row">'+startSelectHTML()+(info?'<button class="chip" id="bSwap" title="起點和終點對調">⇅ 起終點交換</button>':'')+'</div>';
   if(nav.vias.length){ h+='<div class="sub">途經（照順序）</div><div class="row">'+nav.vias.map((v,i)=>'<button class="chip" data-rm="'+i+'">'+(i+1)+'. '+esc(nodeLabel(resolveNode(v))||v)+(nav.acc&&stepOnly(resolveNode(v))?'（有階梯，略過）':'')+' ✕</button>').join('')+'</div>'; }
   if(info) h+='<ol class="steps">'+info.steps.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>';
   h+='<div class="row">'+(info?'<button class="btn" id="bRouteWalk">跟著路線走</button><button class="btn ghost" id="bRouteCopy">複製路線連結</button><button class="btn ghost" id="bRouteQR">QR Code</button>':'')+'<button class="btn ghost" id="bRouteClear">清除路線</button></div><input id="linkOut" readonly hidden aria-label="路線連結">';
   card.innerHTML=evTop+h; card.scrollTop=0; bindNav(card);
   card.querySelectorAll('[data-rm]').forEach(el=>el.addEventListener('click',()=>{ nav.vias.splice(+el.dataset.rm,1); if(nav.to) showRoute(); else routeCard(null); }));
   card.querySelector('#bRouteClear').addEventListener('click',clearRoute);
+  { const bs=card.querySelector('#bSwap'); if(bs) bs.addEventListener('click',()=>{ const f=nav.from||'G01', t=nav.to; if(!t) return; nav.from=t; nav.to=f; nav.vias.reverse(); markStart(); showRoute(); }); }
   { const bq=card.querySelector('#bRouteQR'); if(bq) bq.addEventListener('click',()=>showQR(routeLink(), nav.event? nav.event.title : nodeLabel(resolveNode(nav.from))+' → '+nodeLabel(resolveNode(nav.to)))); }
   { const bw=card.querySelector('#bRouteWalk'); if(bw) bw.addEventListener('click',()=>{ if(nav.path&&nav.path.length){ walkStart(nav.path[0]); autoPlay(); } }); }
   { const sl=card.querySelector('#navStair'); if(sl) sl.addEventListener('change',()=>{ nav.vias=nav.vias.filter(v=>!/^T\d+$/.test(v)); if(sl.value) nav.vias.push(sl.value); showRoute(); }); }
@@ -1347,7 +1398,7 @@ var walkSlabs=[];   /* 用 var：setFloor() 在這段之前就會被呼叫 */
 function walkInit(){ if(WALK.ready) return; WALK.ready=true;
   NN.forEach(n=>{ if(n.b){ const b=n.b, p=b.at(Math.max(0,Math.min(b.len,n.t))); let dx=n.x-p[0], dz=n.z-p[1], l=Math.hypot(dx,dz);
       if(l<0.01){ dx=-Math.sin(p[2]); dz=Math.cos(p[2]); l=1; }
-      const k=b.d/2+0.5; n.wx=p[0]+dx/l*k; n.wz=p[1]+dz/l*k; n.wy=(n.L===0?-FH:(n.L-1)*FH)+LIFT+0.1; }
+      const k=b.d/2+0.5; n.wx=p[0]+dx/l*k; n.wz=p[1]+dz/l*k; n.wy=n.ground?0.1:(n.L===0?-FH:(n.L-1)*FH)+LIFT+0.1; }
     else { n.wx=n.x; n.wz=n.z; n.wy=0.03; } });
   /* [FIX 3] 走路用的路網：導航路網＋「轉角捷徑」。L 型轉角那種「先往前一點、再折回來」的節點，小人直接切過去，不必往回走 */
   WE=NN.map(n=>EE[n.id].slice());
@@ -1619,6 +1670,10 @@ window.__campus.walk={turn:TURN,play:autoPlay,pause:autoPause,start:walkStart,st
 
 window.__campus.applyNotices=applyNotices; window.__campus.pointCard=pointCard; window.__campus.showEvent=showEvent;
 fromLink(); Object.assign(cam,goal); animate();
+/* 第一次開啟的三步驟提示：只在「直接打開」時自動出現，看過或略過就不再自動出現；首頁「操作說明」可以再看 */
+setTimeout(()=>{ try{ const QP=LATE_PARAMS||(BOOT&&BOOT.p)||{}, U=new URLSearchParams(location.search);
+  if(QP.to||QP.from||QP.event||QP.e||U.get('to')||U.get('from')||U.get('event')||U.get('e')||location.hash.length>1) return;
+  let seen=null; try{ seen=localStorage.getItem('campus3d.tips'); }catch(e){} if(!seen) showTips(); }catch(e){} },1200);
 setTimeout(()=>{ try{ const QP=LATE_PARAMS||(BOOT&&BOOT.p)||null, q=QP?{get:k=>QP[k]||null}:new URLSearchParams(location.search), H=location.hash||'';   /* 這一次是從哪裡打開的 */
   const ev=q.get('event')||q.get('e')||(H.match(/^#e-(.+)$/)||[])[1], from=q.get('from'), to=q.get('to')||(H.match(/^#r(.+)$/)||[])[1];
   logUse('開啟', ev?decodeURIComponent(ev):(from&&!to?from:(to?'link':'direct')), to?decodeURIComponent(to):''); }catch(e){} },2500);
