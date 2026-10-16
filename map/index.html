@@ -151,7 +151,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.38 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.39 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -167,7 +167,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.38 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.39 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -419,7 +419,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.38 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.39 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -659,7 +659,7 @@ const STAIRS=[
  [1,'和平樓',0,0,'和平樓南端'],[2,'和平樓',1,0,'和平樓・信義樓轉角'],[3,'力行樓',0,0,'信義樓・力行樓之間'],[4,'力行樓',1,0,'力行樓・仁愛樓之間'],
  [5,'行政大樓',0,0,'行政大樓西端'],[6,'行政大樓',1,0,'行政大樓東端'],[7,'至美樓南段',0.78,0,'至美樓・仁愛樓交界'],[8,'至美樓北段',1,0,'至美樓・至真樓轉角'],
  [9,'至真樓北段',1,0,'至真樓北段・南段轉角'],[10,'至真樓南段',1,0,'至真樓南端'],
- [14,'行政大樓中央廊',0.5,0,'中央廊'],[15,'力行樓',0.5,-7,'力行樓中央後側'],
+ /* 14 號（中央廊）拿掉：平台上只是防水用的幾階小台階，可以輕鬆跨過、推車也過得去（115.10.17 現場確認） */[15,'力行樓',0.5,-7,'力行樓中央後側'],
  [20,'至善樓',1,0,'至善樓東端'],
  [21,'至善樓',0,0,'至善樓西端'],[22,'德馨樓',0,0,'德馨樓西端']];
 const stairMat=new THREE.MeshLambertMaterial({color:0x2b3540});
@@ -1097,6 +1097,8 @@ for(let L=2;L<=3;L++) linkN(endN(findB('行政大樓'),L,'m'),endN(findB('行政
 linkN(endN(findB('行政大樓'),1,'m'),endN(findB('行政大樓中央廊'),1,'s'),'step',3);
 linkN(endN(findB('行政大樓中央廊'),1,'e'),endN(findB('力行樓'),1,'m'),'step',3);
 /* v5.38：3F 平台北端接到力行樓 3F 走廊（現場可以一路走到力行樓）：接到力行樓走廊上最近的那一點 */
+/* v5.39：2F 第一會議室裡面有門通力行樓 2F：接起來，但多算 60 公尺：平常繞連通走道，不會把人帶進會議室 */
+{ const e2=endN(findB('行政大樓中央廊'),2,'e'), a2=(findB('力行樓').nodes[2]||[]).slice().sort((p,q)=>Math.hypot(p.x-e2.x,p.z-e2.z)-Math.hypot(q.x-e2.x,q.z-e2.z)); if(e2&&a2.length){ linkN(e2,a2[0],'walk',60); e2.thruRoom='第一會議室'; } }
 { const e3=endN(findB('行政大樓中央廊'),3,'e'), arr=(findB('力行樓').nodes[3]||[]).slice().sort((p,q)=>Math.hypot(p.x-e3.x,p.z-e3.z)-Math.hypot(q.x-e3.x,q.z-e3.z)); if(e3&&arr.length) linkN(e3,arr[0],'walk'); }
 /* v5.38：中央廊 3F 是露天平台（無屋頂、大樓間風大、常有水漥）：無障礙路線不走；雨天路線當戶外算；路線說明會提醒 */
 { const pn=(findB('行政大樓中央廊').nodes[3]||[]); pn.forEach(n=>{ n.open=true; EE[n.id].forEach(e=>{ if(e.kind==='walk'||e.kind==='step'){ e.noAcc=1; e.o=Math.max(e.o,e.d); EE[e.to].forEach(g=>{ if(g.to===n.id){ g.noAcc=1; g.o=Math.max(g.o,g.d); } }); } }); }); }
@@ -1186,11 +1188,12 @@ function describe(path,stops){
       const lift=a.cell&&a.cell.name==='電梯'; let j=i+1; while(j+1<path.length&&path[j+1].b&&path[j].b&&path[j+1].L!==path[j].L&&path[j+1].b.name===a.b.name){ j++; floors++; }
       push('在'+a.b.name+(lift?'搭電梯':'走樓梯')+(up?'上':'下')+'到 '+FLOORNAME(path[j].L)); i=j-1; continue; }
     meters+=Math.hypot(a.x-b.x,a.z-b.z); if((a.L==='G'&&b.L==='G')||a.open||b.open) wet+=Math.hypot(a.x-b.x,a.z-b.z);
-    if(!a.open&&b.open) push('走上行政大樓中央的 3F 露天平台（無屋頂，雨天可能有水漥）');
+    if(!a.open&&b.open) push('走上行政大樓中央的 3F 露天平台（入口有幾階小台階；無屋頂，雨天可能有水漥）');
     if(!a.b&&b.b) push((a.ramp?'走坡道往下進入':(nav.acc&&a.rampIn?'由'+a.rampIn+'進入':'進入'))+b.b.name+' '+FLOORNAME(b.L));
     else if(a.b&&!b.b) push(b.ramp?'走坡道往上離開'+a.b.name+' B1':'走出'+a.b.name);
     else if(a.b&&b.b&&!a.ground&&b.ground) push('走下台階到中央川堂');
     else if(a.b&&b.b&&a.ground&&!b.ground) push('走上台階進入'+b.b.name+' 1F');
+    else if(a.b&&b.b&&a.b.name!==b.b.name&&(a.thruRoom||b.thruRoom)) push('穿過'+(a.thruRoom||b.thruRoom)+'的內門到'+b.b.name+' '+FLOORNAME(b.L)+'（開會時請改走其他路）');
     else if(a.b&&b.b&&a.b.name!==b.b.name) push((a.open?'沿平台直走進入':'經連通走道到')+b.b.name+(a.open?' '+FLOORNAME(b.L):''));
     if(nextStop<stops.length-1&&b===stops[nextStop]){ push('經過「'+nodeLabel(b)+'」'); nextStop++; }
   }
