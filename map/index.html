@@ -1254,7 +1254,7 @@ function applyNotices(text){
     o.active=rowActive(o,now);
     if(o.type==='公告'){ if(o.active) NOTICES.push(o); } else if(o.type==='封閉'){ if(o.active&&closePlace(o.place)) CLOSED.push(o); } });
   /* 核准過的班級連結：由伺服器只針對這一個代號放進來，不會出現在公開的活動清單 */
-  if(BOOT&&BOOT.ev&&BOOT.ev.code){ const b=BOOT.ev; if(!EVENTS.some(e=>e.code.toLowerCase()===String(b.code).toLowerCase())) EVENTS.push({code:String(b.code),title:b.title||(/^m/i.test(String(b.code))?'會議地點':'班級教室'),note:'',active:!!b.active,priv:1,start:b.start||'',vias:[],stops:b.place?[{place:String(b.place),old:'',note:b.note||''}]:[]}); }
+  if(BOOT&&BOOT.ev&&BOOT.ev.code){ const b=BOOT.ev; if(!EVENTS.some(e=>e.code.toLowerCase()===String(b.code).toLowerCase())) EVENTS.push({code:String(b.code),title:b.title||(/^m/i.test(String(b.code))?'會議地點':'班級教室'),note:'',active:!!b.active,priv:1,start:b.start||'',vias:Array.isArray(b.vias)?b.vias:[],stops:b.place?[{place:String(b.place),old:'',note:b.note||''}]:[]}); }
   eventsLoaded=true; renderNotice(); const er=document.getElementById('evRow'); if(er) er.innerHTML=evRowHTML();
   if(nav.to) showRoute(); if(pendingEvent){ const c=pendingEvent; pendingEvent=null; showEvent(c); } }
 const stopCell=p=>cells.find(x=> (x.slots||[]).includes(p) || (x.type==='hidden' ? (x.hcodes||[]).includes(p) : x.findable&&(x.token===p||x.codes.includes(p)||x.name===p)));   /* 位置代號（行政大樓2F#6）公開、未公開的格子都認得 */
