@@ -143,7 +143,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="labels"></div>
 
 <div id="top">
-  <div id="brand" class="panel"><b>CAMPUS 3D v5.30 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
+  <div id="brand" class="panel"><b>CAMPUS 3D v5.31 外賓版</b><span>新北市立中正國中・115 學年度教室位置</span></div>
   <button id="walkBtn" class="panel" title="用小人在校園裡走走看">走走看</button>
   <div id="searchWrap">
     <input id="q" type="search" autocomplete="off" placeholder="找地點：學務處、科技中心、圖書室、健康中心…" aria-label="搜尋教室或地點">
@@ -159,7 +159,7 @@ body.walking #brand,body.walking #dock,body.walking #floors,body.walking #search
 <div id="qrBox" hidden role="dialog" aria-modal="true" aria-labelledby="qrTitle"><div class="qr-in panel"><div class="sub">掃描開啟</div><h2 id="qrTitle"></h2><div id="qrImg"></div><div id="qrUrl"></div><p class="qr-tip">可以投影給大家掃，或截圖放進簡報、聯絡簿。</p><div class="row"><button class="btn" id="qrCopy">複製連結</button><button class="btn ghost" id="qrClose">關閉</button></div></div></div>
 <div id="joy" hidden aria-label="移動搖桿"><div id="joyKnob"></div></div>
 <div id="walkBtns" hidden><button id="wUp" class="btn" hidden>▲ 上樓</button><button id="wDn" class="btn" hidden>▼ 下樓</button></div>
-<div id="ver">CAMPUS 3D v5.30 外賓版・資料 115.08.19</div>
+<div id="ver">CAMPUS 3D v5.31 外賓版・資料 115.08.19</div>
 
 <script>/* Three.js r128（MIT License）內嵌 */
 /**
@@ -319,11 +319,13 @@ function gridToFloors(text, withB1Codes){
       let j=i; while(j+1<vals.length&&vals[j+1]===v&&v!=='（未公開）') j++;   // 未公開的格子不合併，才保得住各自的門牌
       const codes=[]; for(let k=i;k<=j;k++){ const h=(heads[k]||'').replace(/\D/g,''); if(h&&(L>0||withB1Codes[key])) codes.push((L>0?L:'B')+('0'+h).slice(-2)); }
       const n=j-i+1, pre=codes.length?codes.join(',')+'|':'';
+      /* 位置代號（v5.31）：棟名＋樓層＃第幾格，例「行政大樓2F#6」。沒有門牌的房間（會議室等）靠這個讓會議導引連結找得到 */
+      const slot=[]; for(let k=i;k<=j;k++) slot.push(key+(L===0?'B1':L+'F')+'#'+(k+1)); const sp='~'+slot.join(',')+'~';
       const parts=v.split(/[／\/]/).map(x=>x.trim()).filter(Boolean);
       parts.forEach(nm=>{ if(nm==='樓梯・WC'||nm==='樓梯WC') nm='樓梯WC';
         const narrow=/^(樓梯|樓梯WC|WC|走廊|電梯)$/.test(nm);
         const w=parts.length>1? n/parts.length : (narrow&&n===1? null : n);
-        cellsOut.push(pre+nm+(w===null||w===1?'':'*'+w)); });
+        cellsOut.push(sp+pre+nm+(w===null||w===1?'':'*'+w)); });
       i=j+1;
     }
     if(cellsOut.length) out[key][L]=cellsOut;
@@ -399,7 +401,7 @@ const FLOORNAME=l=>l===0?'B1':l+'F';
 /* ---------- 解析資料 → 格子清單 ---------- */
 const FLOORS=gridToFloors(CSV_TEXT, Object.fromEntries(BUILDINGS.filter(b=>b.b1codes).map(b=>[b.name+(b.part||''),true])));
 BUILDINGS.forEach(b=>{ b.floors=FLOORS[b.name+(b.part||'')]||{1:['（表格缺這一棟）']}; });
-document.getElementById('ver').textContent='CAMPUS 3D v5.30 外賓版・'+DATA_SOURCE;
+document.getElementById('ver').textContent='CAMPUS 3D v5.31 外賓版・'+DATA_SOURCE;
 window.__campus={get goal(){return goal;},get cells(){return cells;}};
 const cells=[];           // 所有格子
 BUILDINGS.forEach((b,bi)=>{
@@ -418,12 +420,13 @@ BUILDINGS.forEach((b,bi)=>{
   b.top=b.roof||b.levels[0]; b.cells=[];
   b.levels.forEach(L=>{
     const row=b.floors[L].map(s=>{
+      let slots=[]; const sm=s.match(/^~([^~]*)~/); if(sm){ slots=sm[1].split(',').filter(Boolean); s=s.slice(sm[0].length); }
       let w=null; const m=s.match(/\*([\d.]+)$/); if(m){w=+m[1]; s=s.slice(0,m.index);}
       let codes=[], name=s; const p=s.split('|'); if(p.length>1){codes=p[0].split(','); name=p[1];}
       if(s===SW) name='樓梯・WC';
       const type=s===SW?'stair':typeOf(name);
       if(w===null) w=s===SW?.7:(DEFW[type]||1);
-      return {codes,name,type,w,level:L,b};
+      return {codes,name,type,w,level:L,b,slots};
     });
     // 未公開的房間：併成一片後再切成等寬小段，才能順著弧形校舍排（等寬，看不出原本的隔間）
     { const ex=[]; row.forEach(c=>{ const n=c.type==='hidden'?Math.max(1,Math.round(c.w)):1; for(let i=0;i<n;i++) ex.push(n>1?Object.assign({},c,{w:c.w/n}):c); }); row.length=0; ex.forEach(c=>row.push(c)); }
@@ -1251,16 +1254,17 @@ function applyNotices(text){
     o.active=rowActive(o,now);
     if(o.type==='公告'){ if(o.active) NOTICES.push(o); } else if(o.type==='封閉'){ if(o.active&&closePlace(o.place)) CLOSED.push(o); } });
   /* 核准過的班級連結：由伺服器只針對這一個代號放進來，不會出現在公開的活動清單 */
-  if(BOOT&&BOOT.ev&&BOOT.ev.code){ const b=BOOT.ev; if(!EVENTS.some(e=>e.code.toLowerCase()===String(b.code).toLowerCase())) EVENTS.push({code:String(b.code),title:b.title||'班級教室',note:'',active:!!b.active,priv:1,start:b.start||'',vias:[],stops:b.place?[{place:String(b.place),old:'',note:b.note||''}]:[]}); }
+  if(BOOT&&BOOT.ev&&BOOT.ev.code){ const b=BOOT.ev; if(!EVENTS.some(e=>e.code.toLowerCase()===String(b.code).toLowerCase())) EVENTS.push({code:String(b.code),title:b.title||(/^m/i.test(String(b.code))?'會議地點':'班級教室'),note:'',active:!!b.active,priv:1,start:b.start||'',vias:[],stops:b.place?[{place:String(b.place),old:'',note:b.note||''}]:[]}); }
   eventsLoaded=true; renderNotice(); const er=document.getElementById('evRow'); if(er) er.innerHTML=evRowHTML();
   if(nav.to) showRoute(); if(pendingEvent){ const c=pendingEvent; pendingEvent=null; showEvent(c); } }
-const stopCell=p=>cells.find(x=> x.type==='hidden' ? (x.hcodes||[]).includes(p) : x.findable&&(x.token===p||x.codes.includes(p)||x.name===p));
+const stopCell=p=>cells.find(x=> (x.slots||[]).includes(p) || (x.type==='hidden' ? (x.hcodes||[]).includes(p) : x.findable&&(x.token===p||x.codes.includes(p)||x.name===p)));   /* 位置代號（行政大樓2F#6）公開、未公開的格子都認得 */
 function revealStops(ev){ const multi=ev.stops.length>1; ev.stops.forEach(st=>{ const c=stopCell(st.place); if(c&&c.type==='hidden') c.revealName=(multi&&st.note)?st.note:ev.title; }); }   // 活動限時公開：只揭露活動指定的那幾間
 function evBoxHTML(ev,compact){
   const list=ev.stops.map((st,i)=>{ const c=stopCell(st.place); return '<li>'+(c?'<button class="chip" data-evstop="'+i+'">'+esc(displayName(c))+'</button>':'<span>'+esc(st.place)+'（不在這份地圖上）</span>')+
       (st.old?'<div class="chg">地點異動：原訂「'+esc(st.old)+'」，改至「'+esc(c?displayName(c):st.place)+'」</div>':'')+(st.note&&!compact?'<div class="nt2">'+esc(st.note)+'</div>':'')+'</li>'; }).join('');
   const multi=ev.stops.length>1, routed=!!(ev.start||ev.vias.length);
-  return '<div class="evbox"><div class="sub">活動</div><b>'+esc(ev.title)+'</b>'+(multi||!compact?'<ol class="evstops">'+list+'</ol>':(ev.stops[0]&&ev.stops[0].old?'<div class="chg">地點異動：原訂「'+esc(ev.stops[0].old)+'」</div>':''))+
+  const pnote=compact&&!multi&&ev.priv&&ev.stops[0]&&ev.stops[0].note?'<div class="nt2">'+esc(ev.stops[0].note)+'</div>':'';   /* 會議導引：時間和說明在路線卡上也要看得到 */
+  return '<div class="evbox"><div class="sub">'+(/^m/i.test(ev.code)?'會議':'活動')+'</div><b>'+esc(ev.title)+'</b>'+pnote+(multi||!compact?'<ol class="evstops">'+list+'</ol>':(ev.stops[0]&&ev.stops[0].old?'<div class="chg">地點異動：原訂「'+esc(ev.stops[0].old)+'」</div>':''))+
     '<div class="row">'+((multi||routed)&&!compact?'<button class="btn" id="bEvRoute">'+(multi?'依序帶我走一遍':'顯示指定路線')+'</button>':'')+'<button class="btn ghost" id="bEvCopy">複製活動連結</button><button class="btn ghost" id="bEvQR">QR Code</button></div></div>'; }
 function evRoute(ev){ const toks=ev.stops.map(st=>{ const c=stopCell(st.place); return c?c.token:null; }).filter(Boolean); if(!toks.length) return false;
   if(ev.start&&resolveNode(ev.start)){ nav.from=ev.start; markStart(); }
