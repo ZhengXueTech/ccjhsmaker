@@ -9,19 +9,43 @@
   @media (prefers-color-scheme:dark){:root{--bg:#0e1a22;--ink:#e6eef2;--muted:#93a6b3;--accent:#5fb0ff}}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
   main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;box-sizing:border-box;text-align:center}
-  h1{font-size:20px;margin:0} p{margin:0;color:var(--muted);font-size:14px} a{color:var(--accent);font-weight:700}
+  h1{font-size:20px;margin:0}
+  p{margin:0;color:var(--muted);font-size:14px}
+  a{color:var(--accent);font-weight:700}
 </style>
 <main>
   <h1>中正國中 3D 校園導覽</h1>
-  <p>網址已搬家，正在開啟地圖…</p>
-  <p><a id="go" href="https://zhengxuetech.github.io/ccjhs-map/">沒有自動跳轉請按這裡</a></p>
+  <p>正在開啟地圖…</p>
+  <p><a id="go" href="#">沒有自動跳轉請按這裡</a></p>
 </main>
 <script>
-/* 舊網址（ccjhsmaker）轉址頁：已貼出的 QR 牌、寄出的班級／會議連結都還指向這裡。
-   這裡只做一件事：把網址後面的參數（?from=G01、?e=代號…）和 # 原封不動轉到新網址。
-   這個檔以後不用再改；備援開關、地圖更新都在新儲存庫做。 */
-var NEW_URL = 'https://zhengxuetech.github.io/ccjhs-map/';
-var url = NEW_URL + location.search + location.hash;
-document.getElementById('go').href = url;
-location.replace(url);
+/* 轉址頁：把這個短網址後面帶的參數，原封不動轉給 Google Apps Script 的網頁。
+   GAS 網址換了，只要改下面這一行，印出去的連結和 QR Code 都不用重做。 */
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbywHUAVNsVKFqf7Ck7O4MN48qhLobw1CCzRf6f-q6SUQLX6b2KqpUKhGSxVhQkomoClxA/exec';
+
+/* 大流量活動（校慶、親師日）用的備援開關：
+   'gas'    ＝平常，轉到 Apps Script。
+   'static' ＝改轉到同一個 GitHub 網站裡的 map/ 備援站（外賓版單一檔案，直接讀 Google 試算表，不經過 Apps Script，不怕人多）。
+   班級連結（?e=c 開頭）和 QR 牌列印頁一定要 Apps Script，這兩種不管開關都轉 Apps Script。
+   切換方法：把下面 'gas' 改成 'static'，存檔（commit），一兩分鐘後生效；活動結束再改回來。 */
+var MODE = 'gas';
+var STATIC_URL = 'map/';
+
+(function(){
+  var q = location.search.replace(/^\?/, '');
+  var h = location.hash.replace(/^#/, '');
+  // 舊式的 # 連結也接受：#r128、#nav~G01~128、#e-活動代號
+  if (!q && h) {
+    var m;
+    if ((m = h.match(/^nav~(.+)$/))) { var a = m[1].split('~'); q = 'from=' + a[0] + '&to=' + a[1] + (a.length > 2 ? '&via=' + a.slice(2).join(',') : ''); }
+    else if ((m = h.match(/^e-(.+)$/))) q = 'event=' + m[1];
+    else if ((m = h.match(/^r(.+)$/))) q = 'to=' + m[1];
+  }
+  // 短寫法：?e=活動代號 等同 ?event=
+  q = q.replace(/(^|&)e=/, '$1event=');
+  var needGas = /(^|&)event=c[a-z0-9]{6}(&|$)/i.test(q) || /(^|&)page=qr(&|$)/i.test(q);
+  var url = (MODE === 'static' && !needGas ? STATIC_URL : GAS_URL) + (q ? '?' + q : '');
+  document.getElementById('go').href = url;
+  location.replace(url);
+})();
 </script>
